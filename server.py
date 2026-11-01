@@ -38,6 +38,16 @@ from wyckoff.wm_model import wm_analyze  # noqa: E402
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WEB_FILE = os.path.join(ROOT, "web", "index.html")
 DD_FILE = os.path.join(ROOT, "web", "dd.html")
+# PWA 静态资源（手机“添加到主屏幕/安装应用”所需）
+STATIC_ROUTES = {
+    "/manifest.webmanifest": ("web/manifest.webmanifest", "application/manifest+json; charset=utf-8"),
+    "/sw.js": ("web/sw.js", "application/javascript; charset=utf-8"),
+    "/icon-192.png": ("web/icon-192.png", "image/png"),
+    "/icon-512.png": ("web/icon-512.png", "image/png"),
+    "/icon-512-maskable.png": ("web/icon-512-maskable.png", "image/png"),
+    "/apple-touch-icon.png": ("web/apple-touch-icon.png", "image/png"),
+    "/favicon.ico": ("web/icon-192.png", "image/png"),
+}
 CACHE_TTL = 30.0
 _cache: dict[str, tuple[float, dict]] = {}
 # 大盘K线图数据缓存（code -> (时间戳, payload)），指数日频数据缓存 5 分钟
@@ -118,6 +128,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._serve_index()
         if path == "/dd.html":
             return self._serve_dd()
+        static = STATIC_ROUTES.get(path)
+        if static:
+            return self._serve_static(*static)
         if path == "/api/fundamental":
             code = (query.get("code") or [""])[0].strip()
             if not code:
@@ -188,6 +201,15 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(500, f"无法读取页面文件：{exc}".encode("utf-8"),
                               "text/plain; charset=utf-8")
         return self._send(200, body, "text/html; charset=utf-8")
+
+    def _serve_static(self, rel: str, content_type: str):
+        path = os.path.join(ROOT, rel)
+        try:
+            with open(path, "rb") as handle:
+                body = handle.read()
+        except OSError:
+            return self._send(404, b"not found", "text/plain; charset=utf-8")
+        return self._send(200, body, content_type)
 
     def _api_analyze(self, query: dict):
         code = (query.get("code") or [""])[0].strip()
