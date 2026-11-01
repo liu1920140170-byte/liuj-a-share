@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 运行期生成物（云端会自己重建）
+screener_cache.json
+威科夫复盘买卖策略-*.html
+*.log
+
+# 编辑器 / 本地工具
+.trae/
+.vscode/
+.idea/

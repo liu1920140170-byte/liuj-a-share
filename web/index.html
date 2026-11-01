@@ -1,0 +1,3117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>聪明钱复盘台 · A股</title>
+<style>
+  :root{
+    --bg:#0f1319;
+    --panel:#161c24;
+    --panel2:#1b222c;
+    --line:#242d39;
+    --grid:#1e2732;
+    --text:#e6edf3;
+    --dim:#8b98a8;
+    --dim2:#64717f;
+    --up:#ef4444;
+    --down:#22c55e;
+    --warn:#f59e0b;
+    --info:#38bdf8;
+    --purple:#a78bfa;
+    --buy:#ef4444;
+    --sell:#22c55e;
+    --hold:#6b7280;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Source Han Sans SC",SimSun,sans-serif;
+    font-size:13px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:Consolas,"Courier New",Menlo,monospace;}
+  a{color:var(--info);}
+  /* ---------- 顶栏 ---------- */
+  #topbar{
+    position:sticky;top:0;z-index:20;
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;
+    padding:10px 16px;
+    background:linear-gradient(180deg,#151b24,#111720);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:baseline;gap:8px;font-size:17px;font-weight:700;letter-spacing:.5px;}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--up);display:inline-block;box-shadow:0 0 8px var(--up);}
+  .brand small{color:var(--dim2);font-weight:400;font-size:11px;letter-spacing:0;}
+  .ctl{display:flex;align-items:center;gap:6px;}
+  .ctl label{color:var(--dim);font-size:12px;}
+  input[type=text],select{
+    background:#0c1117;color:var(--text);border:1px solid var(--line);border-radius:5px;
+    padding:5px 8px;font-size:13px;font-family:inherit;outline:none;
+  }
+  input[type=text]{width:118px;letter-spacing:1px;}
+  input[type=text]:focus,select:focus{border-color:#3b82f6;}
+  select{padding:5px 6px;}
+  button{
+    background:#232c38;color:var(--text);border:1px solid var(--line);border-radius:5px;
+    padding:5px 12px;font-size:13px;font-family:inherit;cursor:pointer;
+  }
+  button:hover{background:#2c3745;border-color:#3a4757;}
+  button:active{transform:translateY(1px);}
+  button.primary{background:#1d4ed8;border-color:#2563eb;}
+  button.primary:hover{background:#2563eb;}
+  #dataInfo{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap;color:var(--dim);font-size:12px;}
+  #dataInfo b{color:var(--text);font-weight:600;}
+  /* ---------- 布局 ---------- */
+  main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:12px 16px 28px;}
+  @media (max-width:1100px){}
+  /* ---------- 折叠分区（大盘分析 / 个股分析） ---------- */
+  .secHead{cursor:pointer;user-select:none;display:flex;align-items:center;gap:9px;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;
+    font-size:13px;font-weight:700;color:var(--text);}
+  .secHead:hover{border-color:#3a4757;}
+  .secArrow{display:inline-block;transition:transform .15s;color:var(--dim);font-size:11px;}
+  .secHead.closed .secArrow{transform:rotate(-90deg);}
+  .secHead .h2sub{font-weight:400;}
+  .secBody{display:grid;gap:12px;}
+  /* ---------- 通用工具条 ---------- */
+  .scrBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 10px;}
+  .scrBar select{background:#0f151d;color:var(--text);border:1px solid var(--line);
+    border-radius:6px;padding:4px 8px;font-size:12px;}
+  /* ---------- v32 W-M 选股模型 ---------- */
+  .wmStatus{font-size:12px;color:var(--dim);}
+  .wmLayer{border:1px solid var(--line);border-radius:8px;padding:9px 12px 11px;
+    margin-top:10px;background:var(--panel2);}
+  .wmLayer>h3{margin:0 0 6px;font-size:13px;font-weight:700;display:flex;
+    align-items:center;gap:8px;flex-wrap:wrap;}
+  .wmTag{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 8px;
+    border-radius:9px;border:1px solid var(--line);color:var(--dim);background:#10161f;
+    white-space:nowrap;}
+  .wmTag.ok{border-color:#1f4030;background:#0f1f17;color:#86efac;}
+  .wmTag.no{border-color:#4d2b2b;background:#241416;color:#fca5a5;}
+  .wmTag.mid{border-color:#4a3a1a;background:#241d10;color:#fbbf24;}
+  .wmChips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .wmChip{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--line);
+    background:#10161f;color:var(--dim);white-space:nowrap;}
+  .wmChip b{color:var(--text);font-variant-numeric:tabular-nums;}
+  .wmChip.hit{border-color:#22c55e;background:#0f1f17;color:#86efac;}
+  .wmChip.hit b{color:#86efac;}
+  .wmStep{margin-top:8px;padding-left:9px;border-left:2px solid var(--line);}
+  .wmStep .st{font-weight:700;font-size:12.5px;color:var(--text);display:flex;
+    align-items:center;gap:8px;flex-wrap:wrap;}
+  .wmStep .wmLbl{font-size:12.5px;margin:3px 0 0;}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+  }
+  .card h2{
+    margin:0 0 10px;font-size:13px;font-weight:700;color:var(--text);
+    display:flex;align-items:center;gap:8px;
+  }
+  .card h2::before{content:"";width:3px;height:13px;background:var(--info);border-radius:2px;}
+  .card h2 .h2sub{color:var(--dim2);font-weight:400;font-size:11px;}
+  /* ---------- 提示条 ---------- */
+  #errorBar{
+    display:none;margin:0 0 0;padding:9px 14px;border-radius:6px;
+    background:#3b1116;border:1px solid #7f1d1d;color:#fca5a5;font-size:13px;
+  }
+  #errorBar.on{display:block;}
+  #statusBar{
+    padding:6px 14px;border-radius:6px;background:#131a23;border:1px solid var(--line);
+    color:var(--dim);font-size:12px;display:flex;align-items:center;gap:8px;min-height:30px;
+  }
+  #statusBar .sp{
+    width:11px;height:11px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--info);
+    animation:spin .8s linear infinite;display:none;flex:0 0 auto;
+  }
+  #statusBar.loading .sp{display:inline-block;}
+  #statusBar.err{border-color:#7f1d1d;background:#2a1114;color:#fca5a5;}
+  #statusBar.warn{border-color:#78350f;background:#251a09;color:#fcd34d;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .up{color:var(--up);}
+  .down{color:var(--down);}
+  .flat{color:var(--dim);}
+  .summaryBox{
+    margin-top:10px;padding:8px 10px;border-radius:6px;background:var(--panel2);
+    border-left:3px solid var(--info);color:#cdd9e5;font-size:13px;
+  }
+  .chartLegend{
+    padding:7px 14px 9px;font-size:11px;color:var(--dim);line-height:1.9;
+    border-top:1px dashed var(--line);background:var(--panel2);
+    border-radius:0 0 8px 8px;user-select:none;
+  }
+  .miniNote{margin-top:9px;font-size:12px;color:var(--dim);}
+  .miniNote div{padding:2px 0;}
+  /* ---------- 决策卡 ---------- */
+  .actLabel{
+    display:inline-block;padding:7px 18px;border-radius:6px;font-size:19px;font-weight:800;
+    letter-spacing:1px;color:#fff;background:var(--hold);
+  }
+  .actLabel.buy{background:var(--buy);box-shadow:0 0 14px rgba(239,68,68,.35);}
+  .actLabel.sell{background:var(--sell);box-shadow:0 0 14px rgba(34,197,94,.3);}
+  .actLabel.hold{background:var(--hold);}
+  .kvGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px;}
+  .kv{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;}
+  .kv .k{font-size:11px;color:var(--dim2);}
+  .kv .v{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .tbl{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;}
+  .tbl th{
+    text-align:left;color:var(--dim2);font-weight:500;font-size:11px;
+    border-bottom:1px solid var(--line);padding:4px 8px 4px 0;white-space:nowrap;
+  }
+  .tbl td{padding:4px 8px 4px 0;border-bottom:1px dashed #1d2530;vertical-align:top;}
+  .tbl td.num{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .list{margin:8px 0 0;padding:0;list-style:none;}
+  .list li{padding:3px 0 3px 16px;position:relative;font-size:12.5px;color:#c9d5e1;}
+  .list li::before{content:"·";position:absolute;left:5px;color:var(--dim2);font-weight:700;}
+  .list.warn li::before{content:"!";color:var(--warn);}
+  .blockTitle{font-size:12px;color:var(--dim);margin-top:12px;border-top:1px solid var(--line);padding-top:8px;}
+  /* ---------- 图表 ---------- */
+  #chartBox{position:relative;padding:0;}
+  #chartWrap{position:relative;width:100%;}
+  #chart{display:block;width:100%;height:560px;cursor:crosshair;}
+  @media (max-width:900px){#chart{height:440px;}}
+  @media (max-width:640px){#chart{height:360px;}}
+  #legend{
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;
+    font-size:11.5px;color:var(--dim);margin:0 0 6px 2px;
+  }
+  #legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+  #tip{
+    position:absolute;display:none;pointer-events:none;z-index:9;
+    background:rgba(12,17,23,.95);border:1px solid #33404f;border-radius:6px;
+    padding:7px 9px;font-size:11.5px;line-height:1.6;color:#dbe6f0;
+    font-variant-numeric:tabular-nums;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.5);
+  }
+  #tip .tt{color:#9fb3c8;font-weight:700;margin-bottom:3px;}
+  #tip .tk{color:var(--dim2);display:inline-block;min-width:38px;}
+  /* 大盘图悬停详情浮窗（样式同 #tip，用类选择器支持两张大盘图各自实例） */
+  .idxTip{
+    position:absolute;display:none;pointer-events:none;z-index:9;
+    background:rgba(12,17,23,.95);border:1px solid #33404f;border-radius:6px;
+    padding:7px 9px;font-size:11.5px;line-height:1.6;color:#dbe6f0;
+    font-variant-numeric:tabular-nums;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.5);
+  }
+  .idxTip .tt{color:#9fb3c8;font-weight:700;margin-bottom:3px;}
+  .idxTip .tk{color:var(--dim2);display:inline-block;min-width:38px;}
+  /* ---------- 报告 ---------- */
+  details{border:1px solid var(--line);border-radius:7px;background:var(--panel2);padding:8px 12px;}
+  details summary{cursor:pointer;font-weight:600;color:var(--text);font-size:13px;outline:none;}
+  details summary span{color:var(--dim2);font-weight:400;font-size:11px;margin-left:8px;}
+  pre{
+    margin:10px 0 0;padding:10px;background:#0b1016;border:1px solid var(--line);border-radius:6px;
+    color:#c8d4e0;font-family:Consolas,"Courier New",monospace;font-size:12px;line-height:1.7;
+    white-space:pre-wrap;word-break:break-word;max-height:460px;overflow:auto;
+  }
+  #disclaimer{
+    font-size:11.5px;color:var(--dim2);text-align:center;padding:6px 10px 0;
+    border-top:1px solid var(--line);margin-top:6px;
+  }
+  .empty{color:var(--dim2);font-size:12.5px;padding:8px 0;}
+  #chartEmpty{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:var(--dim2);font-size:13px;pointer-events:none;
+  }
+  .searchWrap{position:relative;display:inline-flex;align-items:center;}
+  #suggest{
+    position:absolute;left:0;top:100%;z-index:50;width:max-content;min-width:100%;
+    background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.55);max-height:280px;overflow-y:auto;
+    display:none;margin-top:2px;
+  }
+  #suggest.show{display:block;}
+  .sgItem{display:flex;justify-content:space-between;gap:12px;padding:7px 10px;cursor:pointer;font-size:12.5px;}
+  .sgItem:hover,.sgItem.active{background:var(--grid);}
+  .sgItem .sgName{color:var(--text);}
+  .sgItem .sgCode{color:var(--dim2);font-size:11px;white-space:nowrap;}
+  .sgItem .sgMkt{color:var(--info);font-size:10px;}
+  .sgEmpty{padding:8px 10px;color:var(--dim2);font-size:12px;}
+  /* ---------- 周期切换 ---------- */
+  .periodTabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px 2px;}
+  .periodTabs .ptab{
+    padding:3px 14px;border:1px solid var(--line);border-radius:4px;
+    font-size:12px;cursor:pointer;background:var(--panel2);color:var(--dim);user-select:none;
+  }
+  .periodTabs .ptab:hover{color:var(--text);}
+  .periodTabs .ptab.on{background:var(--info);color:#0c1219;border-color:var(--info);font-weight:600;}
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand"><span class="dot"></span>聪明钱复盘台 · A股<small>Smart Money · Wyckoff Review</small></div>
+  <div class="ctl">
+    <label for="codeInput">股票代码 / 名称</label>
+    <div class="searchWrap">
+      <input id="codeInput" type="text" value="600519" maxlength="20" autocomplete="off" spellcheck="false" placeholder="如 600519 或 贵州茅台">
+      <div id="suggest" class="suggest" role="listbox"></div>
+    </div>
+  </div>
+  <div class="ctl">
+    <label for="barsSelect">K线数量</label>
+    <select id="barsSelect">
+      <option value="120">120</option>
+      <option value="250">250</option>
+      <option value="500" selected>500</option>
+      <option value="1000">1000</option>
+      <option value="2000">2000</option>
+      <option value="5000">5000</option>
+      <option value="9999">全部</option>
+    </select>
+  </div>
+  <div class="ctl">
+    <button id="refreshBtn" class="primary" type="button">刷新分析</button>
+  </div>
+  <div id="dataInfo">
+    <span>更新时间：<b id="metaUpdated">--</b></span>
+    <span>数据源：<b id="metaSource">--</b></span>
+    <span>复权：<b id="metaAdjust">--</b></span>
+  </div>
+</header>
+
+<main>
+  <div id="errorBar"></div>
+  <div id="statusBar"><span class="sp"></span><span id="statusText">等待加载…</span></div>
+
+  <!-- 折叠分区②：W-M 选股模型（威科夫-均线共振自上而下） -->
+  <div class="secHead" id="secWmHead"><span class="secArrow">▼</span>W-M 选股模型<span class="h2sub">宏观环境 · 量化海选 · 威科夫精选 · 交易执行（使用页面顶部输入的个股）</span></div>
+  <div class="secBody" id="secWmBody">
+  <section class="card" id="wmCard">
+    <h2>威科夫-均线共振 · 自上而下选股模型 <span class="h2sub">W-M 模型：① 宏观定基调 → ② 均线海选 → ③ 威科夫三步杀 → ④ 交易执行</span></h2>
+    <div class="scrBar">
+      <button class="primary" id="wmRunBtn" type="button">运行 W-M 分析</button>
+      <span class="miniNote" style="margin:0">取页面顶部的股票代码，无需在此重复输入</span>
+      <span id="wmStatus" class="wmStatus"></span>
+    </div>
+    <div class="periodTabs" id="wmPeriods" style="margin:8px 0 6px">
+      <span class="ptab on" data-p="day">日线</span><span class="ptab" data-p="week">周线</span><span class="ptab" data-p="month">月线</span><span class="ptab" data-p="m60">60分钟</span><span class="ptab" data-p="m30">30分钟</span>
+    </div>
+    <!-- 第一层 · 宏观环境：大盘K线（由原「大盘分析」区块迁移至此；W-M 出结果后并入第一层卡片内） -->
+    <div id="wmMktFallback">
+      <div id="wmMktCharts" style="margin-top:10px">
+        <div class="blockTitle">大盘K线 · 上证指数 / 创业板指（日/周/月/年切换 · 滚轮缩放 · 拖动平移 · 双击复位）</div>
+        <div id="mktBlock">
+          <div class="blockTitle" style="color:var(--dim)">① 上证指数　<span id="mktChartTitle">K线图（日线）</span></div>
+          <div class="periodTabs" id="mktPeriods" data-code="sh000001" data-cv="mktChart" style="margin:2px 0 6px">
+            <span class="ptab on" data-p="day">日线</span><span class="ptab" data-p="week">周线</span><span class="ptab" data-p="month">月线</span><span class="ptab" data-p="year">年线</span>
+          </div>
+          <canvas id="mktChart" style="width:100%;height:280px;display:block"></canvas>
+          <div class="chartLegend" style="border-top:none;border-radius:8px;margin-top:6px">图例　事件缩写与线条含义同「个股K线图」下方图例（PS/SC/AR/ST/Spring/SOS/LPS…）· Creek 溪流 · Ice 冰线 · Supply/Demand 供给/需求线</div>
+        </div>
+        <div id="mkt2Block" style="margin-top:12px">
+          <div class="blockTitle" style="color:var(--dim)">② 创业板指　<span id="mkt2ChartTitle">K线图（日线）</span></div>
+          <div class="periodTabs" id="mkt2Periods" data-code="sz399006" data-cv="mkt2Chart" style="margin:2px 0 6px">
+            <span class="ptab on" data-p="day">日线</span><span class="ptab" data-p="week">周线</span><span class="ptab" data-p="month">月线</span><span class="ptab" data-p="year">年线</span>
+          </div>
+          <canvas id="mkt2Chart" style="width:100%;height:280px;display:block"></canvas>
+        </div>
+      </div>
+    </div>
+    <div id="wmOut"><div class="empty">点击「运行 W-M 分析」，按页面顶部的股票代码计算（无需在此重复输入）。可选周期：日线 / 周线 / 月线 / 60分钟 / 30分钟（宏观层固定日线口径，第二~四层按所选周期K线计算）。首次计算约 3~10 秒（含三大指数、行业板块与 K 线取数）。</div></div>
+  </section>
+  </div><!-- /secWmBody -->
+
+  <!-- 折叠分区③：个股分析 -->
+  <div class="secHead" id="secStkHead"><span class="secArrow">▼</span>个股分析<span class="h2sub">K线图 · 结论 · 大盘 · 高周期 · 事件链 · 关键K线 · 买卖策略 · 基本面与风险</span></div>
+  <div class="secBody" id="secStkBody">
+
+  <!-- 图表（先看图形，再看分析） -->
+  <section class="card" id="chartBox">
+    <h2>K线图 · 威科夫事件标注 <span class="h2sub" id="chartSub"></span></h2>
+    <div class="periodTabs" id="periodTabs">
+      <span class="ptab on" data-p="day">日线</span>
+      <span class="ptab" data-p="m60">60分</span>
+      <span class="ptab" data-p="m30">30分</span>
+      <span class="ptab" data-p="m15">15分</span>
+      <span class="ptab" data-p="week">周线</span>
+      <span class="ptab" data-p="month">月线</span>
+      <span class="ptab" data-p="year">年线</span>
+    </div>
+    <div id="legend"></div>
+    <div id="chartWrap">
+      <canvas id="chart"></canvas>
+      <div class="chartLegend" id="chartLegend"><b style="color:var(--text)">图例</b>　
+<span style="color:var(--warn)">事件</span>　PS 初步支撑 · SC 卖出高潮 · AR 自动反弹 · ST 二次测试 · Spring 弹簧(假跌破洗盘) · Shakeout 震仓 · Test 缩量测试 · SOS 强势信号 · LPS 最后支撑 · BU 回抽确认 · BC 买入高潮 · UT 上冲失败 · UTAD 派发后上冲失败 · SOW 弱势信号 · LPSY 最后供给
+<br><span style="color:var(--warn)">线条</span>　<span style="color:#facc15">震荡区间＝黄色箱体</span>（上沿 Range High/Creek 溪流 · 下沿 Ice 冰线 · 左右虚线＝区间起止） · Supply 供给线 · Demand 需求线 · <span style="color:var(--up)">Entry 买点</span> · <span style="color:var(--down)">Stop 止损</span> · <span style="color:var(--acc)">Target 目标</span> · <span style="color:#facc15">黄色虚线＝K线形态边界</span>
+<br><span style="color:var(--warn)">形态</span>　SYM △ 收敛三角形(中性,等突破) · ASC △ 上升三角形(偏多) · DESC △ 下降三角形(偏空) · R.WEDGE 上升楔形(看跌) · F.WEDGE 下降楔形(看涨) · BOX 矩形整理(等突破) · BULL/BEAR FLAG 旗形(趋势延续) · ^BK/vBK 已向上/下突破(解读见复盘报告)
+<br><span style="color:var(--warn)">组合</span>　B.ENG 阳包阴(看涨) · S.ENG 阴包阳(看跌) · M.STAR 启明星(底部反转) · E.STAR 黄昏星(顶部反转) · PIER 刺透线(看涨) · DCC 乌云盖顶(看跌) · 3SOLD 红三兵(强势) · 3CROW 三只乌鸦(弱势) · TWZ-B/T 双针探底/平顶镊子 · HRM 孕线(蓄势变盘) · 括线=组合覆盖K线(解读见复盘报告)
+<br><span style="color:var(--warn)">趋势段</span>　TL-UP 上升趋势段(绿色点线+箭头,沿抬高的低点) · TL-DN 下降趋势段(红色点线+箭头,沿降低的高点) · 百分比=段内振幅 · 缩量回踩线不破可顺势,放量破线趋势转弱(解读见复盘报告)
+<br><span style="color:var(--warn)">标注</span>　①②③ 关键K线编号(解读见复盘报告) · ▲ 看涨 ▼ 看跌 ■ 中性 · 操作：滚轮缩放 / 拖动平移 / 双击复位 / ←→ 十字光标</div>
+      <div id="chartEmpty">暂无K线数据</div>
+      <div id="tip"></div>
+    </div>
+  </section>
+
+  <!-- 威科夫复盘报告（参照新华保险分析范式：结论 → 大盘 → 高周期 → 阶段与事件链 → 关键K线 → 买卖策略 → 基本面与风险） -->
+  <section class="card" id="rpCard">
+    <h2>威科夫复盘报告 <span class="h2sub" id="rpSub">结论先行 · 大盘环境 · 长期与高周期 · 阶段与事件链 · 关键K线 · 买卖策略 · 基本面与风险</span></h2>
+    <div id="rpOut"><div class="empty">暂无分析数据（请输入股票代码后查询）。</div></div>
+    <div id="disclaimer">本工具仅为技术分析学习参考，不构成投资建议。</div>
+  </section>
+
+  </div><!-- /secStkBody -->
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==================== 常量 / 工具 ==================== */
+  var C = {
+    up: "#ef4444", down: "#22c55e", text: "#e6edf3", dim: "#8b98a8", dim2: "#64717f",
+    grid: "#1e2732", border: "#242d39", bg: "#141a22", info: "#38bdf8",
+    ma5: "#f59e0b", ma10: "#38bdf8", ma20: "#a78bfa", ma60: "#e879f9",
+    spring: "#22c55e", sos: "#ef4444", other: "#f59e0b", utad: "#fb7185",
+    range: "#fbbf24", cross: "#93a4b8"
+  };
+  var API = "/api/analyze";
+  var DEFAULT_CODE = "600519";
+
+  function $(id) { return document.getElementById(id); }
+  function isN(v) { return typeof v === "number" && isFinite(v); }
+  function isF(v) { return typeof v === "number" && isFinite(v); }
+  function num(v) { if (isN(v)) return v; var n = parseFloat(v); return isFinite(n) ? n : null; }
+  function isArr(v) { return Object.prototype.toString.call(v) === "[object Array]"; }
+  function arr(v) { return isArr(v) ? v : []; }
+  // 注意：这里必须用 isArr(v) 判断，不能写 !arr(v)。
+  // arr() 对「非数组」返回的是 []（真值），!arr(v) 恒为 false，会导致 obj() 永远返回 {}，
+  // 整个页面所有区块都只能显示 "--" 且浏览器不报任何错误。
+  function obj(v) { return v && typeof v === "object" && !isArr(v) ? v : {}; }
+  function str(v) { return v === null || v === undefined || v === "" ? "" : String(v); }
+  function has(v) { return v !== null && v !== undefined && v !== ""; }
+  function esc(s) {
+    return str(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function nf(v, d) {
+    var n = num(v);
+    if (n === null) return "--";
+    if (d === undefined || d === null) d = 2;
+    return n.toFixed(d);
+  }
+  function sgn(v, d) {
+    var n = num(v);
+    if (n === null) return "--";
+    return (n > 0 ? "+" : "") + n.toFixed(d === undefined ? 2 : d);
+  }
+  function pct(v, d) {
+    var n = num(v);
+    if (n === null) return "--";
+    return (n > 0 ? "+" : "") + n.toFixed(d === undefined ? 2 : d) + "%";
+  }
+  function cls(v) {
+    var n = num(v);
+    if (n === null || n === 0) return "flat";
+    return n > 0 ? "up" : "down";
+  }
+  function money(v) {
+    var n = num(v);
+    if (n === null) return "--";
+    var a = Math.abs(n);
+    if (a >= 1e12) return (n / 1e12).toFixed(2) + "万亿";
+    if (a >= 1e8) return (n / 1e8).toFixed(2) + "亿";
+    if (a >= 1e4) return (n / 1e4).toFixed(2) + "万";
+    return n.toFixed(0);
+  }
+  function ratioNum(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === "string") {
+      var s = v.replace(/[%\s]/g, "");
+      if (!s) return null;
+      var f = parseFloat(s);
+      if (!isFinite(f)) return null;
+      return v.indexOf("%") >= 0 ? f / 100 : f;
+    }
+    var n = num(v);
+    if (n === null) return null;
+    return n > 1.5 ? n / 100 : n;
+  }
+  function pctText(v) {
+    var r = ratioNum(v);
+    if (r === null) return "--";
+    return r.toFixed(2) + "%";
+  }
+  function parts(v) {
+    var n = num(v);
+    return (n !== null && n > 0) ? (n + "").split(".") : [];
+  }
+  function setPre(v) { var p = parts(v); return p.length === 2 ? p[1].length : 2; }
+  function px(v, pre) {
+    var n = num(v);
+    if (n === null) return "--";
+    return n.toFixed(pre === undefined ? setPre(v) : pre);
+  }
+  function fmtMoneyPrice(v) {
+    var n = num(v);
+    if (n === null) return "--";
+    if (n >= 1e12) return (n / 1e12).toFixed(2) + " 万亿";
+    if (n >= 1e8) return (n / 1e8).toFixed(2) + " 亿";
+    if (n >= 1e4) return (n / 1e4).toFixed(2) + " 万";
+    return n.toFixed(0);
+  }
+  function ymd(s) { return str(s).slice(0, 10); }
+  function isMinPeriod(p) { return str(p).charAt(0) === "m"; }   /* m60/m30/m15 分钟级小周期 */
+  function hm(s) { return str(s).slice(11, 16); }                 /* "14:30" */
+  function listRender(id, items, emptyText) {
+    var el = $(id);
+    if (!el) return;
+    var a = arr(items).filter(function (x) { return has(x); });
+    if (!a.length) { el.innerHTML = '<li style="color:var(--dim2)">' + esc(emptyText || "暂无") + "</li>"; return; }
+    el.innerHTML = a.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("");
+  }
+  function ma(arrIn, i, p) {
+    var a = arr(arrIn);
+    if (i < p - 1) return null;
+    var s = 0, c = 0;
+    for (var k = i - p + 1; k <= i; k++) {
+      var v = num(a[k]);
+      if (v !== null) { s += v; c++; }
+    }
+    return c === p ? s / p : (c > 0 ? s / c : null);
+  }
+  /* 整条均线序列（供周/月/年等周期K线在前端计算 MA） */
+  function maSeries(arrIn, p) {
+    var a = arr(arrIn), out = [];
+    for (var i = 0; i < a.length; i++) out.push(ma(a, i, p));
+    return out;
+  }
+  var PERIOD_CN = { day: "日线", m60: "60分钟", m30: "30分钟", m15: "15分钟", week: "周线", month: "月线", year: "年线" };
+  function labelKind(ev) {
+    var cn = str(ev.type_cn) + " " + str(ev.type);
+    if (/Spring|弹簧|Shakeout|震仓/i.test(cn)) return "spring";
+    if (/UTAD|Upthrust|上冲|冲高回落/i.test(cn)) return "utad";
+    if (/SOS|Sign of Strength|强势|跳离|放量上涨/i.test(cn)) return "sos";
+    if (/LPS|LPSY|Last Point|最后支撑|测试|Test/i.test(cn)) return "other";
+    return "other";
+  }
+  function labelColor(kind) {
+    return kind === "spring" ? C.spring : kind === "sos" ? C.sos : kind === "utad" ? C.utad : C.other;
+  }
+  function trimLabel(s, max) {
+    s = str(s);
+    max = max || 10;
+    return s.length > max ? s.slice(0, max - 1) + "…" : s;
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    if (h < 0) { y += h; h = -h; }
+    var rr = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+    ctx.lineTo(x + rr, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+    ctx.lineTo(x, y + rr);
+    ctx.quadraticCurveTo(x, y, x + rr, y);
+    ctx.closePath();
+  }
+
+  /* ==================== 全局状态 ==================== */
+  var state = {
+    code: DEFAULT_CODE,
+    bars: 500,
+    data: null,
+    demo: false,
+    hoverIndex: null,
+    hoverLabel: null,
+    view: { start: 0, end: null },   /* K线可视窗口 [start, end)，end=null 表示全部 */
+    drag: null,                       /* 拖动平移状态 */
+    layout: null,
+    loading: false,
+    lastMs: null,
+    reqSeq: 0,
+    /* 周期切换：period 当前周期；kline 非空表示正在显示周期K线（非日线分析数据） */
+    period: "day",
+    kline: null,
+    periodData: {},
+    periodSeq: 0,
+    /* 当日作战：定时轮询状态 */
+    intraSeq: 0,
+    intraTimer: null,
+    intraSession: ""
+  };
+  window.__state = state;   /* 调试出口：控制台可直接读取视窗/布局状态 */
+
+  /* ==================== DOM 引用 ==================== */
+  var els = {
+    codeInput: $("codeInput"),
+    suggest: $("suggest"),
+    barsSelect: $("barsSelect"),
+    refreshBtn: $("refreshBtn"),
+    dataInfo: $("dataInfo"),
+    metaUpdated: $("metaUpdated"),
+    metaSource: $("metaSource"),
+    metaAdjust: $("metaAdjust"),
+    errorBar: $("errorBar"),
+    statusBar: $("statusBar"),
+    statusText: $("statusText"),
+    wySummary_removed: null, /* 威科夫结论卡已按需求移除 */
+    bgCard_removed: null, /* 当下背景卡已按需求移除 */
+    chartSub: $("chartSub"),
+    periodTabs: $("periodTabs"),
+    legend: $("legend"),
+    chartWrap: $("chartWrap"),
+    chart: $("chart"),
+    chartEmpty: $("chartEmpty"),
+    tip: $("tip"),
+    disclaimer: $("disclaimer")
+  };
+  var ctx = els.chart ? els.chart.getContext("2d") : null;
+
+  /* ==================== 状态条 / 错误条 ==================== */
+  function setStatus(kind, text) {
+    if (!els.statusBar) return;
+    els.statusBar.className = kind || "";
+    if (els.statusText) els.statusText.textContent = text || "";
+  }
+  function showError(msg) {
+    if (!els.errorBar) return;
+    if (!msg) { els.errorBar.className = ""; els.errorBar.textContent = ""; return; }
+    els.errorBar.className = "on";
+    els.errorBar.textContent = "⚠ " + msg;
+  }
+  function clearAll(msg) {
+    state.data = null;
+    state.hoverIndex = null;
+    renderAll();
+    setStatus("warn", msg);
+  }
+
+  /* ==================== 周期切换（日/周/月/年） ==================== */
+  function resetViewForChart() {
+    var c = state.kline ? state.kline : chartData(state.data);
+    var n = c ? c.n : 0;
+    state.view = n > 500 ? { start: n - 500, end: null } : { start: 0, end: null };
+    state.hoverIndex = null;
+    state.hoverLabel = null;
+    if (els.tip) els.tip.style.display = "none";
+  }
+  function updateChartSub() {
+    if (!els.chartSub) return;
+    var c = chartData(state.data);
+    var pcn = PERIOD_CN[state.period] || "";
+    var rng = "";
+    if (c && c.n && c.dates.length) {
+      var _end = isMinPeriod(state.period) ? str(c.dates[c.n - 1]).slice(0, 16) : ymd(c.dates[c.n - 1]);
+      rng = " · " + ymd(c.dates[0]) + " → " + _end;
+    }
+    els.chartSub.textContent = (c && c.n) ? (pcn + " · " + c.n + " 根K线" + rng) : "";
+  }
+  function setPeriodTabs(period) {
+    if (!els.periodTabs) return;
+    var tabs = els.periodTabs.querySelectorAll(".ptab");
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].className = "ptab" + (tabs[i].getAttribute("data-p") === period ? " on" : "");
+    }
+  }
+  function buildPeriodKline(j) {
+    var dates = arr(j.dates);
+    var open = arr(j.open), high = arr(j.high), low = arr(j.low),
+        close = arr(j.close), volume = arr(j.volume);
+    return {
+      n: dates.length,
+      dates: dates, open: open, high: high, low: low, close: close, volume: volume,
+      ma5: maSeries(close, 5), ma10: maSeries(close, 10),
+      ma20: maSeries(close, 20), ma60: maSeries(close, 60),
+      events: [], range: obj(j.range), wyEvents: [],
+      trend_lines: arr(j.trend_lines),
+      patterns: arr(j.patterns),
+      candle_patterns: arr(j.candle_patterns),
+      trends: arr(j.trends)
+    };
+  }
+  function loadPeriod(period) {
+    if (!PERIOD_CN[period]) period = "day";
+    state.period = period;
+    setPeriodTabs(period);
+    if (period === "day") {
+      state.kline = null;                    /* 回到日线 = 分析结果自带的K线（含事件标注） */
+      resetViewForChart();
+      drawChart();
+      updateChartSub();
+      return;
+    }
+    var cached = state.periodData[period];
+    if (cached) {
+      state.kline = cached;
+      resetViewForChart();
+      drawChart();
+      updateChartSub();
+      return;
+    }
+    var d = state.data;
+    var code = (d && d.meta && (d.meta.symbol || d.meta.code)) || state.code;
+    if (!code) { setStatus("warn", "请先加载一只股票，再切换周期。"); return; }
+    var seq = ++state.periodSeq;
+    setStatus("loading", "正在加载" + PERIOD_CN[period] + "全量K线…");
+    fetch("/api/kline?code=" + encodeURIComponent(code) + "&period=" + period,
+          { headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (seq !== state.periodSeq) return;
+        if (!j || !j.ok) throw new Error((j && j.error) || "接口返回失败");
+        var built = buildPeriodKline(j);
+        if (!built.n) throw new Error("K线数据为空");
+        /* 买点/止损/目标价位与周期无关：沿用日线分析结果的 trade_levels，周月年视图同样标注 */
+        var tlFrom = obj(obj(state.data).kline);
+        if (tlFrom.trade_levels && tlFrom.trade_levels.entry != null) built.trade_levels = tlFrom.trade_levels;
+        state.periodData[period] = built;
+        state.kline = built;
+        resetViewForChart();
+        drawChart();
+        updateChartSub();
+        var _ptArr = arr(built.patterns);
+        var _cpArr = arr(built.candle_patterns);
+        var _ptNote = (_ptArr.length
+          ? " · 识别到形态：" + _ptArr.map(function (p) { return str(obj(p).label); }).join("/")
+          : " · 本周期未识别到标准整理形态")
+          + (_cpArr.length ? "；K线组合 " + _cpArr.length + " 处（标签见图）" : "；无K线组合信号");
+        var _endLbl = isMinPeriod(period) ? str(built.dates[built.n - 1]).slice(0, 16) : ymd(built.dates[built.n - 1]);
+        var _tlN = arr(built.trend_lines).length;
+        var _rgOk = num(obj(built.range).high) !== null;
+        var _keyNote = " · 关键线：" + (_tlN ? _tlN + " 条趋势线" : "无趋势线")
+          + (_rgOk ? "＋区间上下沿(溪流/冰线)" : "");
+        var _adjNote = str(j.note) ? " · " + str(j.note) : "";
+        setStatus("", PERIOD_CN[period] + "加载完成：" + built.n + " 根（"
+          + ymd(built.dates[0]) + " → " + _endLbl + "）· 滚轮缩放查看全部历史" + _ptNote + _keyNote + _adjNote);
+      })
+      .catch(function (err) {
+        if (seq !== state.periodSeq) return;
+        setStatus("err", PERIOD_CN[period] + "加载失败：" + (err && err.message ? err.message : String(err)));
+      });
+  }
+  (function bindPeriodTabs() {
+    if (!els.periodTabs) return;
+    var tabs = els.periodTabs.querySelectorAll(".ptab");
+    for (var i = 0; i < tabs.length; i++) {
+      (function (node) {
+        node.addEventListener("click", function () { loadPeriod(node.getAttribute("data-p")); });
+      })(tabs[i]);
+    }
+  })();
+
+  function renderHead(d) {
+    var m = obj(d && d.meta);
+    els.metaUpdated.textContent = has(m.updated) ? str(m.updated) : "--";
+    els.metaSource.textContent = has(m.source) ? str(m.source) : "--";
+    els.metaAdjust.textContent = has(m.adjust) ? str(m.adjust) : "--";
+  }
+
+  /* ==================== 渲染：威科夫结论 ==================== */
+  /* ---------- 威科夫四阶段循环图（吸筹→拉升→派发→下跌） ---------- */
+  /* 各阶段细分事件链（k=事件类型与后端 events.type 对齐，op=操作要点） */
+  /* A-E 子阶段解读（按大阶段区分语境）：t=标题 d=定义与识别 op=决策要点 */
+  function pre2(d) { return setPre(obj(d && d.meta).price); }
+
+  /* ==================== 图表：几何计算 ==================== */
+  var PAD_L = 8, PAD_R = 68, PAD_T = 16;
+  var GAP = 22;              // 价格区与日期轴间隙
+  var XLABEL = 18;           // 日期标签高度
+  var VOL_H = 0.22;          // 成交量区高度占比
+
+  function chartData(d) {
+    /* 周/月/年等周期视图：直接使用已加载的周期K线（无事件/区间标注） */
+    if (state.kline) return state.kline;
+    var k = obj(d && d.kline);
+    var dates = arr(k.dates);
+    var n = dates.length;
+    if (!n) n = arr(k.close).length;
+    if (!n) return null;
+    return {
+      n: n,
+      dates: dates,
+      open: arr(k.open), high: arr(k.high), low: arr(k.low), close: arr(k.close), volume: arr(k.volume),
+      ma5: arr(k.ma5), ma10: arr(k.ma10), ma20: arr(k.ma20), ma60: arr(k.ma60),
+      events: arr(k.events),
+      range: obj(k.range),
+      trend_lines: arr(k.trend_lines),
+      patterns: arr(k.patterns),
+      candle_patterns: arr(k.candle_patterns),
+      trends: arr(k.trends),
+      trade_levels: obj(k.trade_levels),
+      wyEvents: arr(obj(d && d.wyckoff).events),
+      keyCandles: arr(k.key_candles)
+    };
+  }
+
+  function computeLayout(cw, ch, c, v0, vn) {
+    var volH = Math.max(56, Math.round(ch * VOL_H));
+    var priceY = PAD_T, priceH = ch - PAD_T - GAP - XLABEL - volH - 10;
+    if (priceH < 60) priceH = Math.max(40, ch - PAD_T - GAP - XLABEL - 56);
+    var volY = PAD_T + priceH + GAP;
+    var plotX = PAD_L, plotW = Math.max(20, cw - PAD_L - PAD_R);
+
+    var hi = -Infinity, lo = Infinity, i, v, hv, lv;
+    for (i = v0; i < v0 + vn; i++) {
+      hv = num(c.high[i]); lv = num(c.low[i]); v = num(c.close[i]);
+      if (hv !== null && hv > hi) hi = hv;
+      if (lv !== null && lv < lo) lo = lv;
+      if (hv === null && v !== null && v > hi) hi = v;
+      if (lv === null && v !== null && v < lo) lo = v;
+    }
+    /* 买点/止损/目标价位线纳入可视范围：任何周期/视窗下三条线都不会被裁掉 */
+    var _tl = c.trade_levels || {};
+    var _tlv = [_tl.entry, _tl.stop, _tl.target];
+    for (var _ti2 = 0; _ti2 < 3; _ti2++) {
+      v = num(_tlv[_ti2]);
+      if (v !== null && v > 0) { if (v > hi) hi = v; if (v < lo) lo = v; }
+    }
+    if (!isFinite(hi) || !isFinite(lo)) { hi = 10; lo = 0; }
+    if (hi === lo) { hi = hi + 1; lo = lo - 1; }
+    var padv = (hi - lo) * 0.08;
+    hi += padv; lo -= padv;
+
+    var vmax = 0;
+    for (i = v0; i < v0 + vn; i++) { v = num(c.volume[i]); if (v !== null && v > vmax) vmax = v; }
+    if (!(vmax > 0)) vmax = 1;
+
+    var bt = vn > 0 ? plotW / vn : 1;
+    return {
+      cw: cw, ch: ch, plotX: plotX, plotW: plotW, bt: bt,
+      priceY: priceY, priceH: priceH, volY: volY, volH: volH,
+      hi: hi, lo: lo, vmax: vmax, v0: v0, vn: vn
+    };
+  }
+
+  /* ==================== 图表：绘制 ==================== */
+  function drawChart() {
+    var cv = els.chart;
+    if (!cv || !ctx) return;
+    var dpr = window.devicePixelRatio || 1;
+    var cw = Math.max(320, cv.clientWidth || 800);
+    var ch = Math.max(300, cv.clientHeight || 540);
+    cv.width = Math.round(cw * dpr);
+    cv.height = Math.round(ch * dpr);
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, cw, ch);
+
+    var c = chartData(state.data);
+    if (!c || !c.n) {
+      els.chartEmpty.style.display = "flex";
+      els.chartEmpty.textContent = "暂无K线数据";
+      state.layout = null;
+      drawLegend(null);
+      return;
+    }
+    els.chartEmpty.style.display = "none";
+
+    /* 视窗：clamp 后写回 state.view，再传给布局（hi/lo/vmax 只按可见区间计算） */
+    var n = c.n;
+    var v0 = (state.view && typeof state.view.start === "number" && isFinite(state.view.start)) ? Math.round(state.view.start) : 0;
+    var vn = (state.view && state.view.end !== null && state.view.end !== undefined) ? Math.round(state.view.end) - v0 : n - v0;
+    if (!(vn > 0)) vn = n;
+    if (vn < 10) vn = 10;
+    if (vn > n) vn = n;
+    if (v0 < 0) v0 = 0;
+    if (v0 + vn > n) v0 = n - vn;
+    state.view.start = v0;
+    state.view.end = (v0 + vn >= n) ? null : v0 + vn;
+
+    var L = computeLayout(cw, ch, c, v0, vn);
+    state.layout = L;
+    var plotX = L.plotX, plotW = L.plotW, bt = L.bt;
+    var priceY = L.priceY, priceH = L.priceH, volY = L.volY, volH = L.volH;
+    var hi = L.hi, lo = L.lo, vmax = L.vmax;
+    var pre = pre2(state.data);
+
+    function X(i) { return plotX + bt * (i - v0) + bt / 2; }
+    function PY(p) { return priceY + (hi - p) / (hi - lo) * priceH; }
+    function VY(v) { return volY + volH - v / vmax * volH; }
+
+    /* 背景 */
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(plotX, priceY, plotW, priceH);
+    ctx.fillRect(plotX, volY, plotW, volH);
+
+    /* 水平网格 + 价格刻度 */
+    ctx.font = "10px Consolas, monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    var STEPS = 5, s;
+    for (s = 0; s <= STEPS; s++) {
+      var p = lo + (hi - lo) * s / STEPS;
+      var y = Math.round(PY(p)) + 0.5;
+      ctx.strokeStyle = C.grid;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(plotX, y);
+      ctx.lineTo(plotX + plotW, y);
+      ctx.stroke();
+      ctx.fillStyle = C.dim2;
+      ctx.fillText(p.toFixed(pre), plotX + plotW + 6, y);
+    }
+    /* 成交量区网格 */
+    var vSteps = [0.5, 1];
+    for (s = 0; s < vSteps.length; s++) {
+      var vy = Math.round(volY + volH - volH * vSteps[s]) + 0.5;
+      ctx.strokeStyle = C.grid;
+      ctx.beginPath();
+      ctx.moveTo(plotX, vy);
+      ctx.lineTo(plotX + plotW, vy);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = C.border;
+    ctx.beginPath();
+    ctx.moveTo(plotX + 0.5, priceY);
+    ctx.lineTo(plotX + 0.5, priceY + priceH);
+    ctx.moveTo(plotX + 0.5, volY);
+    ctx.lineTo(plotX + 0.5, volY + volH);
+    ctx.stroke();
+
+    /* x 轴日期标签 */
+    var labelEvery = Math.max(1, Math.ceil(vn / Math.max(3, Math.floor(plotW / 92))));
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = C.dim2;
+    var vi;
+    for (vi = v0; vi < v0 + vn; vi += labelEvery) {
+      var lx = X(vi);
+      ctx.save();
+      ctx.strokeStyle = "#1b232d";
+      ctx.beginPath();
+      ctx.moveTo(Math.round(lx) + 0.5, priceY);
+      ctx.lineTo(Math.round(lx) + 0.5, volY + volH);
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = C.dim2;
+      var _isMin = isMinPeriod(state.period);
+      var lbl = ymd(c.dates[vi]);
+      var _xlbl = state.period === "year" ? lbl.slice(0, 4)
+        : (_isMin ? str(c.dates[vi]).slice(5, 16) : lbl.slice(2));  /* 分钟周期：MM-DD HH:MM */
+      ctx.fillText(_xlbl, lx, volY + volH + 4);
+    }
+
+    /* 交易区间（震荡区间）：半透明箱体 + 上下沿 + 左右起止边界 + 名签 */
+    var rg = c.range;
+    var rangeTag = null;          /* 名签最后统一绘制，避免被趋势段/事件标签覆盖 */
+    var hasRange = rg && num(rg.high) > 0 && num(rg.low) > 0;
+    var si = num(rg && rg.start_index), ei = num(rg && rg.end_index);
+    if (!(si !== null && ei !== null)) { si = 0; ei = c.n - 1; }
+    si = Math.max(0, Math.min(c.n - 1, Math.round(si)));
+    ei = Math.max(0, Math.min(c.n - 1, Math.round(ei)));
+    if (hasRange && ei > si) {
+      var rHi = num(rg.high), rLo = num(rg.low);
+      var x1 = Math.max(plotX, X(si) - bt / 2), x2 = Math.min(plotX + plotW, X(ei) + bt / 2);
+      var yh = Math.round(PY(rHi)) + 0.5, yl = Math.round(PY(rLo)) + 0.5;
+      var rTop = Math.min(yh, yl), rBot = Math.max(yh, yl);
+      ctx.save();
+      /* ① 箱体：淡黄填充，一眼看清震荡区间覆盖的时间段与价格带 */
+      ctx.fillStyle = "rgba(250,204,21,.07)";
+      ctx.fillRect(x1, rTop, Math.max(1, x2 - x1), Math.max(1, rBot - rTop));
+      /* ② 左右边界＝区间起止 */
+      ctx.setLineDash([5, 5]);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(250,204,21,.55)";
+      ctx.beginPath();
+      ctx.moveTo(Math.round(x1) + 0.5, rTop); ctx.lineTo(Math.round(x1) + 0.5, rBot);
+      ctx.moveTo(Math.round(x2) + 0.5, rTop); ctx.lineTo(Math.round(x2) + 0.5, rBot);
+      ctx.stroke();
+      /* ③ 上沿（红）/ 下沿（绿） */
+      ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(239,68,68,.9)";
+      ctx.beginPath(); ctx.moveTo(x1, yh); ctx.lineTo(x2, yh); ctx.stroke();
+      ctx.strokeStyle = "rgba(34,197,94,.9)";
+      ctx.beginPath(); ctx.moveTo(x1, yl); ctx.lineTo(x2, yl); ctx.stroke();
+      /* ④ 区间名签：只算几何，最后统一绘制（避免被趋势段/事件标签压住） */
+      var rTxt = "震荡区间 " + rHi.toFixed(pre) + " ~ " + rLo.toFixed(pre) + "（" + (ei - si + 1) + "根）";
+      ctx.setLineDash([]);
+      ctx.font = "10px Microsoft YaHei, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      var tw = ctx.measureText(rTxt).width + 10;
+      var tx = Math.max(plotX + 2, x1 + 4);
+      if (tx + tw > plotX + plotW) tx = Math.max(plotX + 2, plotX + plotW - tw);
+      rangeTag = { txt: rTxt, x: tx, y: Math.max(priceY + 9, rTop - 11), w: tw };
+      ctx.restore();
+    }
+
+    /* 供给线 / 需求线（威科夫趋势线，延伸至最新一根） */
+    var tls = arr(c.trend_lines);
+    for (var ti = 0; ti < tls.length; ti++) {
+      var tl = obj(tls[ti]);
+      var ai = num(tl.a_index), bi = num(tl.b_index);
+      var ap = num(tl.a_price), bp = num(tl.b_price);
+      if (ai === null || bi === null || ap === null || bp === null || bi <= ai) continue;
+      var isSup = tl.kind === "supply";
+      var slopeTL = (bp - ap) / (bi - ai);
+      var pEnd = bp + slopeTL * ((c.n - 1) - bi);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(plotX, priceY, plotW, priceH);
+      ctx.clip();
+      ctx.strokeStyle = isSup ? "rgba(239,68,68,.8)" : "rgba(56,189,248,.85)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(X(ai), PY(ap));
+      ctx.lineTo(plotX + plotW, PY(pEnd));
+      ctx.stroke();
+      ctx.fillStyle = isSup ? "rgba(239,68,68,.95)" : "rgba(56,189,248,.95)";
+      ctx.font = "10px Microsoft YaHei, sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText((isSup ? "Supply " : "Demand ") + pEnd.toFixed(pre), plotX + plotW - 4, PY(pEnd) - 2);
+      ctx.restore();
+    }
+
+    /* 买卖点标注：买点（绿虚线）/ 止损（红虚线）/ 目标（青虚线） —— 复用后端 _trade_levels */
+    var TL = c.trade_levels || {};
+    var _ptLvl = [
+      { p: TL.entry,  col: "rgba(34,197,94,.95)",  label: "Entry" },
+      { p: TL.stop,   col: "rgba(239,68,68,.95)", label: "Stop" },
+      { p: TL.target, col: "rgba(56,189,248,.95)", label: "Target" },
+    ];
+    ctx.save();
+    ctx.beginPath(); ctx.rect(plotX, priceY, plotW, priceH); ctx.clip();
+    for (var _ti = 0; _ti < _ptLvl.length; _ti++) {
+      var _lv = _ptLvl[_ti];
+      if (_lv.p === null || _lv.p === undefined || !isFinite(_lv.p) || _lv.p <= 0) continue;
+      var _ly = PY(_lv.p);
+      ctx.strokeStyle = _lv.col;
+      ctx.lineWidth = 1.25;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(plotX, _ly);
+      ctx.lineTo(plotX + plotW, _ly);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      /* 右侧标签：白底+同色边框+文字 */
+      var _lbl = _lv.label + " " + _lv.p.toFixed(pre);
+      ctx.font = "bold 10.5px Microsoft YaHei, Consolas, sans-serif";
+      var _tw = ctx.measureText(_lbl).width;
+      var _bx = plotX + plotW - _tw - 10;
+      var _bw = _tw + 10, _bh = 16;
+      var _by = Math.max(priceY + 1, Math.min(priceY + priceH - _bh, _ly - _bh / 2));
+      ctx.fillStyle = "rgba(10,14,19,.92)";
+      roundRect(ctx, _bx, _by, _bw, _bh, 3); ctx.fill();
+      ctx.strokeStyle = _lv.col; ctx.lineWidth = 1.25; ctx.stroke();
+      ctx.fillStyle = _lv.col; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      ctx.fillText(_lbl, _bx + _bw - 4, _by + _bh / 2 + 0.5);
+    }
+    ctx.restore();
+
+    /* 成交量柱 */
+    var i, o, h, l, cl, vv, upBar, bw = Math.max(1, bt * 0.68);
+    for (i = v0; i < v0 + vn; i++) {
+      vv = num(c.volume[i]);
+      if (vv === null) continue;
+      cl = num(c.close[i]); o = num(c.open[i]);
+      upBar = (cl !== null && o !== null) ? cl >= o : true;
+      ctx.fillStyle = upBar ? "rgba(239,68,68,.72)" : "rgba(34,197,94,.72)";
+      var vy2 = VY(vv);
+      ctx.fillRect(X(i) - bw / 2, vy2, bw, Math.max(1, volY + volH - vy2));
+    }
+    ctx.fillStyle = C.dim2;
+    ctx.font = "10px Consolas, monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("Vol " + fmtMoneyPrice(vmax), plotX + 4, volY + 2);
+
+    /* K线 */
+    for (i = v0; i < v0 + vn; i++) {
+      o = num(c.open[i]); h = num(c.high[i]); l = num(c.low[i]); cl = num(c.close[i]);
+      var col = (cl !== null && o !== null) ? (cl >= o ? C.up : C.down) : C.dim;
+      ctx.strokeStyle = col;
+      ctx.fillStyle = col;
+      ctx.lineWidth = 1;
+      if (h === null || l === null) continue;
+      var xc = X(i);
+      ctx.beginPath();
+      ctx.moveTo(Math.round(xc) + 0.5, PY(h));
+      ctx.lineTo(Math.round(xc) + 0.5, PY(l));
+      ctx.stroke();
+      if (o === null || cl === null) continue;
+      var yo = PY(o), yc = PY(cl);
+      var top = Math.min(yo, yc), bh = Math.max(1, Math.abs(yc - yo));
+      if (cl >= o) {
+        ctx.fillStyle = C.bg;
+        ctx.fillRect(xc - bw / 2, top, bw, bh);
+        ctx.strokeStyle = C.up;
+        ctx.strokeRect(Math.round(xc - bw / 2) + 0.5, Math.round(top) + 0.5, Math.max(1, Math.round(bw) - 1), Math.max(1, Math.round(bh) - 1));
+      } else {
+        ctx.fillRect(xc - bw / 2, top, bw, bh);
+      }
+    }
+
+    /* 裸K模式：不绘制任何均线（MA5/10/20/60 数据仍保留供后端/其他分析使用） */
+
+    /* 事件标签 */
+    var labs = [];
+    var ej;
+    for (ej = 0; ej < c.events.length; ej++) {
+      var e = obj(c.events[ej]);
+      var idx = num(e.index);
+      if (idx === null || idx < 0 || idx >= c.n) {
+        var ds = ymd(e.date);
+        if (ds) {
+          for (var ki = 0; ki < c.n; ki++) { if (ymd(c.dates[ki]) === ds) { idx = ki; break; } }
+        }
+      }
+      if (idx === null || idx < 0 || idx >= c.n) continue;
+      if (idx < v0 || idx >= v0 + vn) continue;   /* 只画视窗内的事件 */
+      var priceE = num(e.price);
+      if (priceE === null) priceE = num(c.close[idx]);
+      if (priceE === null) continue;
+      var bullish = e.bullish === true;
+      var text = str(e.type) || "EV";   /* 图上只画英文缩写，中文释义见图下图例 */
+      labs.push({
+        x: X(idx), price: priceE, text: trimLabel(text, 12), full: text,
+        bullish: bullish, idx: idx, kind: labelKind(e),
+        date: str(e.date), desc: str(e.desc),
+        volume_ratio: e.volume_ratio, score: e.score
+      });
+    }
+    if (!labs.length) {
+      var we = c.wyEvents;
+      for (ej = 0; ej < we.length; ej++) {
+        var e2 = obj(we[ej]);
+        var ds2 = ymd(e2.date);
+        var idx2 = null;
+        for (var ki = 0; ki < c.n; ki++) { if (ymd(c.dates[ki]) === ds2) { idx2 = ki; break; } }
+        if (idx2 === null || idx2 < v0 || idx2 >= v0 + vn) continue;
+        var pe = num(e2.price);
+        if (pe === null) pe = num(c.close[idx2]);
+        if (pe === null) continue;
+        labs.push({
+          x: X(idx2), price: pe, text: trimLabel(str(e2.type), 12),
+          full: str(e2.type), bullish: e2.bullish === true, idx: idx2, kind: labelKind(e2),
+          date: str(e2.date), desc: str(e2.desc),
+          volume_ratio: e2.volume_ratio, score: e2.score
+        });
+      }
+    }
+    labs.sort(function (a, b) { return a.idx - b.idx; });
+    var hovLb = (state.hoverLabel !== null && state.hoverLabel !== undefined && state.hoverLabel < labs.length)
+      ? labs[state.hoverLabel] : null;
+    ctx.font = "11px Microsoft YaHei, sans-serif";
+    ctx.textAlign = "center";
+    for (ej = 0; ej < labs.length; ej++) {
+      var lb = labs[ej];
+      var isHov = hovLb === lb;
+      if (isHov) ctx.font = "13px Microsoft YaHei, sans-serif";
+      var showTxt = isHov ? lb.full : lb.text;
+      var tw = ctx.measureText(showTxt).width;
+      var bw2 = tw + 10, bh2 = isHov ? 20 : 16;
+      var above = lb.bullish;
+      var anchor = above ? (num(c.low[lb.idx]) !== null ? num(c.low[lb.idx]) : lb.price)
+        : (num(c.high[lb.idx]) !== null ? num(c.high[lb.idx]) : lb.price);
+      var ay = PY(anchor);
+      var best = null, off, ly, rect;
+      for (off = 0; off < 12; off++) {
+        ly = above ? (ay - 8 - bh2 - off * (bh2 + 3)) : (ay + 8 + off * (bh2 + 3));
+        rect = { x: lb.x - bw2 / 2, y: ly, w: bw2, h: bh2 };
+        if (rect.y < priceY + 1 || rect.y + rect.h > priceY + priceH - 1) continue;
+        var hit = false, q;
+        for (q = 0; q < ej; q++) {
+          var o2 = labs[q].__rect;
+          if (!o2) continue;
+          if (!(rect.x + rect.w < o2.x - 2 || rect.x > o2.x + o2.w + 2 || rect.y + rect.h < o2.y - 2 || rect.y > o2.y + o2.h + 2)) { hit = true; break; }
+        }
+        if (!hit) { best = rect; break; }
+      }
+      if (!best) {
+        ly = above ? (priceY + 3 + (ej % 3) * (bh2 + 3)) : (priceY + priceH - bh2 - 3 - (ej % 3) * (bh2 + 3));
+        best = { x: Math.max(plotX + 1, Math.min(plotX + plotW - bw2 - 1, lb.x - bw2 / 2)), y: ly, w: bw2, h: bh2 };
+      }
+      best.x = Math.max(plotX + 1, Math.min(plotX + plotW - bw2 - 1, best.x));
+      lb.__rect = best;
+      var lc = labelColor(lb.kind);
+      /* 引线 */
+      ctx.strokeStyle = lc;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(lb.x, above ? ay - 1 : ay + 1);
+      ctx.lineTo(lb.x, above ? best.y + best.h : best.y);
+      ctx.stroke();
+      /* 标签 */
+      roundRect(ctx, best.x, best.y, best.w, best.h, 3);
+      ctx.fillStyle = isHov ? lc : "rgba(10,14,19,.9)";   /* 悬停时反色高亮 */
+      ctx.fill();
+      ctx.strokeStyle = lc;
+      ctx.lineWidth = isHov ? 2 : 1;
+      ctx.stroke();
+      ctx.fillStyle = isHov ? "#0c1219" : lc;
+      ctx.textBaseline = "middle";
+      ctx.fillText(showTxt, best.x + best.w / 2, best.y + best.h / 2 + 0.5);
+      if (isHov) ctx.font = "11px Microsoft YaHei, sans-serif";
+    }
+    /* 存储标签矩形，供鼠标命中检测（悬停放大 + 事件详情） */
+    if (state.layout) state.layout.eventLabels = labs;
+
+    /* 关键K线编号标注（《新威科夫操盘法》案例式，编号与决策卡清单一一对应） */
+    var kcsArr = c.keyCandles || [];
+    if (kcsArr.length) {
+      var kCN2 = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
+      ctx.font = "10px Microsoft YaHei, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (ej = 0; ej < kcsArr.length; ej++) {
+        var kc2 = obj(kcsArr[ej]);
+        var kIdx = num(kc2.index);
+        if (kIdx === null || kIdx < v0 || kIdx >= v0 + vn) continue;
+        var kUp = str(kc2.tone) === "up";
+        var kh = num(c.high[kIdx]), kl = num(c.low[kIdx]);
+        if (kh === null && kl === null) continue;
+        var kx = X(kIdx);
+        var ky = kUp ? (PY(kl !== null ? kl : kh) + 13) : (PY(kh !== null ? kh : kl) - 13);
+        var kCol = kUp ? "rgba(38,166,91,1)" : "rgba(239,68,68,1)";
+        ctx.beginPath();
+        ctx.arc(kx, ky, 8, 0, Math.PI * 2);
+        ctx.fillStyle = kUp ? "rgba(38,166,91,.15)" : "rgba(239,68,68,.15)";
+        ctx.fill();
+        ctx.strokeStyle = kCol;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.fillStyle = kCol;
+        ctx.fillText(kCN2[(num(kc2.num) || 1) - 1] || String(kc2.num), kx, ky + 0.5);
+      }
+      ctx.font = "11px Microsoft YaHei, sans-serif";
+    }
+
+    /* 次级趋势段（小趋势）：点线趋势线 + 末端箭头 + 英文标签（图上无汉字，释义见图例/时间线） */
+    arr(c.trends).forEach(function (tr) {
+      var L = arr(tr.line);
+      if (L.length < 2) return;
+      var up = tr.kind === "up";
+      var col = up ? "rgba(34,197,94,.85)" : "rgba(239,68,68,.85)";
+      var x0 = X(L[0][0]), y0 = PY(L[0][1]), x1 = X(L[1][0]), y1 = PY(L[1][1]);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(plotX, priceY, plotW, priceH); ctx.clip();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([2, 3]);                      /* 点线，与供给/需求长虚线区分 */
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      ctx.setLineDash([]);
+      var ang = Math.atan2(y1 - y0, x1 - x0);       /* 末端小箭头标示趋势方向 */
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x1 - 9 * Math.cos(ang - 0.45), y1 - 9 * Math.sin(ang - 0.45));
+      ctx.lineTo(x1 - 9 * Math.cos(ang + 0.45), y1 - 9 * Math.sin(ang + 0.45));
+      ctx.closePath();
+      ctx.fillStyle = col; ctx.fill();
+      /* 标签：线末端旁，上升段在下方、下降段在上方 */
+      var _tTxt = str(tr.label) + (num(tr.chg_pct) !== null ? " " + (up ? "+" : "") + num(tr.chg_pct) + "%" : "");
+      ctx.font = "bold 10px Consolas, monospace";
+      var _tw = ctx.measureText(_tTxt).width + 8;
+      var _tx = Math.min(Math.max(x1 - _tw / 2, plotX + 2), plotX + plotW - _tw - 2);
+      var _ty = up ? y1 + 6 : y1 - 22;
+      _ty = Math.min(Math.max(_ty, priceY + 2), priceY + priceH - 18);
+      ctx.fillStyle = "rgba(10,14,19,.92)";
+      roundRect(ctx, _tx, _ty, _tw, 16, 3); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = up ? "#22c55e" : "#ef4444";
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(_tTxt, _tx + 4, _ty + 8);
+      ctx.restore();
+    });
+
+    /* 经典K线形态（三角形/楔形/矩形/旗形）：置于最上层，半透明填充 + 黄色虚线边界 + 英文标签 */
+    arr(c.patterns).forEach(function (pt) {
+      var U = pt.upper, L = pt.lower;
+      if (!U || !L || U.length < 2 || L.length < 2) return;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(plotX, priceY, plotW, priceH); ctx.clip();
+      ctx.beginPath();
+      ctx.moveTo(X(U[0][0]), PY(U[0][1]));
+      ctx.lineTo(X(U[1][0]), PY(U[1][1]));
+      ctx.lineTo(X(L[1][0]), PY(L[1][1]));
+      ctx.lineTo(X(L[0][0]), PY(L[0][1]));
+      ctx.closePath();
+      ctx.fillStyle = pt.bias === "bull" ? "rgba(34,197,94,.09)"
+        : pt.bias === "bear" ? "rgba(239,68,68,.09)" : "rgba(250,204,21,.09)";
+      ctx.fill();
+      ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = "rgba(250,204,21,.95)";
+      ctx.beginPath();
+      ctx.moveTo(X(U[0][0]), PY(U[0][1])); ctx.lineTo(X(U[1][0]), PY(U[1][1]));
+      ctx.moveTo(X(L[0][0]), PY(L[0][1])); ctx.lineTo(X(L[1][0]), PY(L[1][1]));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      /* 名称标签：形态水平中点、上沿上方（图上无汉字，释义见图例/时间线） */
+      var _pbTxt = pt.label + (pt.breakout === "up" ? " ^BK" : pt.breakout === "down" ? " vBK" : "");
+      ctx.font = "bold 11px Consolas, Microsoft YaHei, sans-serif";
+      var _pw = ctx.measureText(_pbTxt).width + 12;
+      var _midIdx = (U[0][0] + U[1][0]) / 2;
+      var _midUp = (U[0][1] + U[1][1]) / 2;
+      var _pbx = Math.min(Math.max(X(_midIdx) - _pw / 2, plotX + 2), plotX + plotW - _pw - 2);
+      var _pby = Math.max(priceY + 2, PY(_midUp) - 24);
+      ctx.fillStyle = "rgba(10,14,19,.95)";
+      roundRect(ctx, _pbx, _pby, _pw, 17, 3); ctx.fill();
+      ctx.strokeStyle = "rgba(250,204,21,.95)"; ctx.lineWidth = 1.3; ctx.stroke();
+      ctx.fillStyle = "#facc15"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(_pbTxt, _pbx + 6, _pby + 9);
+      ctx.restore();
+    });
+
+    /* 多根K线组合形态（吞没/启明星/红三兵等）：参与K线加括线 + 英文缩写标签（图上无汉字） */
+    arr(c.candle_patterns).forEach(function (cp) {
+      var ixs = arr(cp.indexes).map(function (x) { return num(x); })
+        .filter(function (x) { return x !== null && x >= v0 && x < v0 + vn; });
+      if (!ixs.length) return;                     /* 参与K线均不在视窗内则不画 */
+      var lastI = num(cp.index);
+      var bull = cp.bullish === true;
+      var col = bull ? "rgba(34,197,94,.95)"
+        : cp.bullish === false ? "rgba(239,68,68,.95)" : "rgba(250,204,21,.95)";
+      ctx.save();
+      ctx.beginPath(); ctx.rect(plotX, priceY, plotW, priceH); ctx.clip();
+      var _clv = function (ix) {
+        var v = bull ? num(c.low[ix]) : num(c.high[ix]);
+        if (v === null) v = num(c.close[ix]);
+        return v === null ? null : PY(v);
+      };
+      var xs = ixs.map(function (ix) { return X(ix); });
+      var x1 = Math.min.apply(null, xs), x2 = Math.max.apply(null, xs);
+      var ys = ixs.map(_clv).filter(function (y) { return y !== null; });
+      if (!ys.length) { ctx.restore(); return; }
+      var lvl = bull ? Math.min.apply(null, ys) : Math.max.apply(null, ys);
+      var yBase = bull ? lvl + 9 : lvl - 9;
+      var tick = bull ? 4 : -4;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();                              /* 括线：横线 + 两端小竖钩，圈出参与K线 */
+      ctx.moveTo(x1 - 2, yBase); ctx.lineTo(x2 + 2, yBase);
+      ctx.moveTo(x1 - 2, yBase); ctx.lineTo(x1 - 2, yBase - tick);
+      ctx.moveTo(x2 + 2, yBase); ctx.lineTo(x2 + 2, yBase - tick);
+      ctx.stroke();
+      var _cpTxt = str(cp.label);
+      ctx.font = "bold 10px Consolas, monospace";
+      var _cw = ctx.measureText(_cpTxt).width + 8;
+      var _cx = Math.min(Math.max(x2 - _cw / 2, plotX + 1), plotX + plotW - _cw - 1);
+      var _cy = bull ? yBase + 1 : yBase - 16;
+      ctx.fillStyle = "rgba(10,14,19,.92)";
+      roundRect(ctx, _cx, _cy, _cw, 14, 3); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = bull ? "#22c55e" : cp.bullish === false ? "#ef4444" : "#facc15";
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(_cpTxt, _cx + 4, _cy + 7.5);
+      ctx.restore();
+    });
+
+    /* 十字光标 */
+    var hv = state.hoverIndex;
+    if (hv !== null && hv !== undefined && hv >= v0 && hv < v0 + vn) {
+      var hx = Math.round(X(hv)) + 0.5;
+      ctx.save();
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = C.cross;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(hx, priceY);
+      ctx.lineTo(hx, volY + volH);
+      ctx.stroke();
+      ctx.restore();
+      var hc = num(c.close[hv]);
+      if (hc !== null) {
+        var hy = Math.round(PY(hc)) + 0.5;
+        ctx.save();
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = C.cross;
+        ctx.beginPath();
+        ctx.moveTo(plotX, hy);
+        ctx.lineTo(plotX + plotW, hy);
+        ctx.stroke();
+        ctx.restore();
+        /* 右侧价格气泡 */
+        var pTxt = hc.toFixed(pre);
+        ctx.font = "10px Consolas, monospace";
+        var ptw = ctx.measureText(pTxt).width + 10;
+        roundRect(ctx, plotX + plotW + 3, hy - 9, Math.min(ptw, PAD_R - 6), 18, 3);
+        ctx.fillStyle = "#334155";
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(pTxt, plotX + plotW + 3 + Math.min(ptw, PAD_R - 6) / 2, hy);
+      }
+      /* 底部日期气泡 */
+      var dTxt = isMinPeriod(state.period) ? str(c.dates[hv]).slice(0, 16) : ymd(c.dates[hv]);
+      if (dTxt) {
+        ctx.font = "10px Consolas, monospace";
+        var dtw = ctx.measureText(dTxt).width + 10;
+        var dx = Math.max(plotX, Math.min(plotX + plotW - dtw, hx - dtw / 2));
+        roundRect(ctx, dx, volY + volH + 2, dtw, 15, 3);
+        ctx.fillStyle = "#334155";
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(dTxt, dx + dtw / 2, volY + volH + 9.5);
+      }
+    }
+
+    /* 标题信息 */
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.font = "11px Microsoft YaHei, sans-serif";
+    ctx.fillStyle = C.dim;
+    var infoTxt = "K线 " + vn + "/" + n + " 根";
+    if (c.dates.length) infoTxt += "　" + ymd(c.dates[v0]) + " → " + ymd(c.dates[v0 + vn - 1]);
+    if (state.demo) infoTxt += "　※ 演示数据";
+    ctx.fillText(infoTxt, plotX + 2, 2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = C.dim2;
+    ctx.fillText("Wheel zoom / drag pan / dbl-click reset", plotX + plotW - 4, 2);
+
+    /* 震荡区间名签：最后绘制，压在事件/趋势标签之上 */
+    if (rangeTag) {
+      ctx.save();
+      ctx.setLineDash([]);
+      ctx.font = "10px Microsoft YaHei, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(15,23,42,.92)";
+      ctx.fillRect(rangeTag.x, rangeTag.y - 8, rangeTag.w, 16);
+      ctx.strokeStyle = "rgba(250,204,21,.65)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(rangeTag.x + 0.5, rangeTag.y - 7.5, rangeTag.w - 1, 15);
+      ctx.fillStyle = "rgba(250,204,21,.98)";
+      ctx.fillText(rangeTag.txt, rangeTag.x + 5, rangeTag.y);
+      ctx.restore();
+    }
+
+    drawLegend(c);
+    ctx.restore();
+  }
+
+  /* ==================== 图表：图例 ==================== */
+  function drawLegend(c) {
+    var el = els.legend;
+    if (!el) return;
+    var items = [];
+    function item(color, text, dash) {
+      items.push('<span><i style="background:' + color + (dash ? ";height:0;border-top:2px dashed " + color : "") + '"></i>' + esc(text) + "</span>");
+    }
+    item(C.up, "阳线(涨)");
+    item(C.down, "阴线(跌)");
+    if (c) {
+      if (c.range && (has(c.range.high) || has(c.range.low))) item(C.range, "交易区间上下沿", true);
+      if (arr(c.trend_lines).length) {
+        item("rgba(239,68,68,.8)", "供给线(高点连线)");
+        item("rgba(56,189,248,.85)", "需求线(低点连线)");
+      }
+    }
+    el.innerHTML = items.join("");
+  }
+
+  /* ==================== 图表：悬停提示 ==================== */
+  function nearestIndex(x) {
+    var L = state.layout;
+    if (!L) return null;
+    var i = L.v0 + Math.floor((x - L.plotX) / L.bt);
+    if (i < L.v0) i = L.v0;
+    if (i > L.v0 + L.vn - 1) i = L.v0 + L.vn - 1;
+    return i;
+  }
+  function updateTip(x, y) {
+    var i = state.hoverIndex;
+    var L = state.layout;
+    var c = chartData(state.data);
+    if (i === null || !L || !c) { els.tip.style.display = "none"; return; }
+    var o = num(c.open[i]), h = num(c.high[i]), l = num(c.low[i]), cl = num(c.close[i]);
+    var pre = pre2(state.data);
+    var prevC = i > 0 ? num(c.close[i - 1]) : num(obj(state.data && state.data.meta).prev_close);
+    var chg = (cl !== null && prevC !== null && prevC !== 0) ? (cl - prevC) : null;
+    var chgPct = (chg !== null && prevC) ? chg / prevC * 100 : null;
+    var v = num(c.volume[i]);
+    var vma = ma(c.volume, i, 5);
+    var vr = (v !== null && vma !== null && vma > 0) ? v / vma : null;
+    var cc = cls(chgPct);
+    var rows = [];
+    rows.push('<div class="tt">' + esc((isMinPeriod(state.period) ? str(c.dates[i]).slice(0, 16) : ymd(c.dates[i])) || ("# " + i)) + "</div>");
+    rows.push('<span class="tk">开</span>' + esc(px(o, pre)) + '　<span class="tk">高</span>' + esc(px(h, pre)));
+    rows.push('<span class="tk">低</span>' + esc(px(l, pre)) + '　<span class="tk">收</span>' + esc(px(cl, pre)));
+    rows.push('<span class="tk">涨跌</span><span class="' + cc + '">' + esc(sgn(chg, pre)) + " / " + esc(pct(chgPct)) + "</span>");
+    if (v !== null) rows.push('<span class="tk">量</span>' + esc(fmtMoneyPrice(v)) + (vr !== null ? '　<span class="tk">量比</span>' + esc(nf(vr, 2)) : ""));
+    els.tip.innerHTML = rows.join("<br>");
+    els.tip.style.display = "block";
+    var tw = els.tip.offsetWidth, th = els.tip.offsetHeight;
+    var wrapW = els.chartWrap.clientWidth, wrapH = els.chartWrap.clientHeight;
+    var tx = x + 16, ty = y + 12;
+    if (tx + tw > wrapW - 4) tx = Math.max(4, x - tw - 16);
+    if (ty + th > wrapH - 4) ty = Math.max(4, wrapH - th - 4);
+    els.tip.style.left = tx + "px";
+    els.tip.style.top = ty + "px";
+  }
+  /* 悬停事件标签：显示事件完整详情 */
+  function showEventTip(lb, x, y) {
+    var pre = pre2(state.data);
+    var rows = [];
+    rows.push('<div class="tt">' + esc(ymd(lb.date) || ("#" + lb.idx)) + "</div>");
+    rows.push('<span class="' + cls(lb.bullish ? 1 : -1) + '">' + (lb.bullish ? "▲ 看多" : "▼ 看空") + "</span>　<b>" + esc(lb.full) + "</b>");
+    if (lb.desc) rows.push('<span class="tk">说明</span>' + esc(lb.desc));
+    if (num(lb.price) !== null) rows.push('<span class="tk">价格</span>' + esc(px(lb.price, pre)));
+    if (has(lb.volume_ratio)) rows.push('<span class="tk">量比</span>' + esc(nf(lb.volume_ratio, 2)));
+    if (has(lb.score)) rows.push('<span class="tk">评分</span>' + esc(nf(lb.score, 0)));
+    els.tip.innerHTML = rows.join("<br>");
+    els.tip.style.display = "block";
+    var tw = els.tip.offsetWidth, th = els.tip.offsetHeight;
+    var wrapW = els.chartWrap.clientWidth, wrapH = els.chartWrap.clientHeight;
+    var tx = x + 16, ty = y + 12;
+    if (tx + tw > wrapW - 4) tx = Math.max(4, x - tw - 16);
+    if (ty + th > wrapH - 4) ty = Math.max(4, wrapH - th - 4);
+    els.tip.style.left = tx + "px";
+    els.tip.style.top = ty + "px";
+  }
+  function bindChart() {
+    /* 绑定到外层容器：事件从 canvas 或覆盖层冒泡上来都能收到，避免覆盖层拦截滚轮/拖动 */
+    var cv = els.chartWrap || els.chart;
+    if (!cv) return;
+    /* 视窗 clamp：保证 [start,end) 落在 [0,n) 内，最小窗口 10 根 */
+    function clampView(n) {
+      var v0 = (typeof state.view.start === "number" && isFinite(state.view.start)) ? Math.round(state.view.start) : 0;
+      var vn = (state.view.end !== null && state.view.end !== undefined) ? Math.round(state.view.end) - v0 : n - v0;
+      if (!(vn > 0)) vn = n;
+      if (vn < 10) vn = 10;
+      if (vn > n) vn = n;
+      if (v0 < 0) v0 = 0;
+      if (v0 + vn > n) v0 = n - vn;
+      state.view.start = v0;
+      state.view.end = (v0 + vn >= n) ? null : v0 + vn;
+    }
+    function readView(n) {
+      var v0 = (typeof state.view.start === "number" && isFinite(state.view.start)) ? Math.round(state.view.start) : 0;
+      var vn = (state.view.end !== null && state.view.end !== undefined) ? Math.round(state.view.end) - v0 : n - v0;
+      if (!(vn > 0)) vn = n;
+      return { v0: v0, vn: vn };
+    }
+    /* 滚轮缩放：以鼠标所在K线为锚点 */
+    cv.addEventListener("wheel", function (ev) {
+      var c = chartData(state.data);
+      var L = state.layout;
+      if (!c || !L) return;
+      ev.preventDefault();
+      var r = cv.getBoundingClientRect();
+      var mx = ev.clientX - r.left;
+      var n = c.n;
+      var b = readView(n);
+      var ai = b.v0 + (mx - L.plotX) / L.bt;             /* 锚点索引（可为小数） */
+      var k = ev.deltaY > 0 ? 1.25 : 0.8;                /* 下滚缩小，上滚放大 */
+      var vnNew = Math.round(b.vn * k);
+      var v0New = ai - (ai - b.v0) * (vnNew / b.vn);     /* 锚点处保持不动 */
+      state.view.start = v0New;
+      state.view.end = v0New + vnNew;
+      clampView(n);
+      state.hoverIndex = null;
+      state.hoverLabel = null;
+      els.tip.style.display = "none";
+      drawChart();
+    }, { passive: false });
+    /* 拖动平移 */
+    cv.addEventListener("mousedown", function (ev) {
+      var L = state.layout;
+      if (!L || ev.button !== 0) return;
+      var r = cv.getBoundingClientRect();
+      var mx = ev.clientX - r.left;
+      if (mx < L.plotX || mx > L.plotX + L.plotW) return;
+      var c = chartData(state.data);
+      if (!c) return;
+      var b = readView(c.n);
+      state.drag = { x: ev.clientX, v0: b.v0, vn: b.vn, bt: L.bt, n: c.n };
+      if (els.chart) els.chart.style.cursor = "grabbing";
+      ev.preventDefault();
+    });
+    window.addEventListener("mousemove", function (ev) {
+      var dg = state.drag;
+      if (!dg) return;
+      var offset = Math.round((ev.clientX - dg.x) / dg.bt);
+      var v0 = dg.v0 - offset;
+      state.view.start = v0;
+      state.view.end = (dg.vn >= dg.n) ? null : v0 + dg.vn;
+      clampView(dg.n);
+      drawChart();
+    });
+    window.addEventListener("mouseup", function () {
+      if (state.drag) { state.drag = null; if (els.chart) els.chart.style.cursor = ""; }
+    });
+    /* 双击复位 */
+    cv.addEventListener("dblclick", function () {
+      state.view = { start: 0, end: null };
+      state.hoverIndex = null;
+      state.hoverLabel = null;
+      els.tip.style.display = "none";
+      drawChart();
+    });
+    /* 键盘交互（同花顺式，鼠标在图上时生效）：
+       ←/→ 移动十字光标（到视窗边界自动平移），↑/↓ 以光标为锚缩放，Home/End 跳到最前/最后 */
+    var chartHot = false;
+    cv.addEventListener("mouseenter", function () { chartHot = true; });
+    cv.addEventListener("mouseleave", function () { chartHot = false; });
+    function keyboardTip() {
+      var L2 = state.layout, c2 = chartData(state.data), i2 = state.hoverIndex;
+      if (!L2 || !c2 || i2 === null || i2 === undefined) { els.tip.style.display = "none"; return; }
+      var cl2 = num(c2.close[i2]);
+      var tx2 = L2.plotX + L2.bt * (i2 - L2.v0) + L2.bt / 2;
+      var ty2 = cl2 !== null ? L2.priceY + (L2.hi - cl2) / (L2.hi - L2.lo) * L2.priceH : L2.priceY + L2.priceH / 2;
+      updateTip(tx2, ty2);
+    }
+    window.addEventListener("keydown", function (ev) {
+      var ae = document.activeElement;
+      if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.tagName === "SELECT" || ae.isContentEditable)) return;
+      if (!chartHot) return;                 /* 鼠标不在图上时不劫持按键 */
+      var c = chartData(state.data);
+      var L = state.layout;
+      if (!c || !L) return;
+      var n = c.n, v0 = L.v0, vn = L.vn, handled = true;
+      if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") {
+        var hi2 = (state.hoverIndex === null || state.hoverIndex === undefined) ? v0 + vn - 1 : state.hoverIndex;
+        hi2 += (ev.key === "ArrowLeft" ? -1 : 1);
+        if (hi2 < v0) v0 -= 1;               /* 触到视窗左边界：窗口整体左移一根 */
+        if (hi2 > v0 + vn - 1) v0 += 1;      /* 触到右边界：右移一根 */
+        if (v0 < 0) v0 = 0;
+        if (v0 + vn > n) v0 = n - vn;
+        hi2 = Math.max(v0, Math.min(v0 + vn - 1, hi2));
+        state.view.start = v0;
+        state.view.end = (v0 + vn >= n) ? null : v0 + vn;
+        state.hoverIndex = hi2;
+        state.hoverLabel = null;
+        drawChart();
+        keyboardTip();
+      } else if (ev.key === "ArrowUp" || ev.key === "ArrowDown") {
+        var k = ev.key === "ArrowUp" ? 0.8 : 1.25;
+        var ai = (state.hoverIndex === null || state.hoverIndex === undefined) ? v0 + vn / 2 : state.hoverIndex;
+        var vnNew = Math.round(vn * k);
+        var v0New = ai - (ai - v0) * (vnNew / vn);
+        state.view.start = v0New;
+        state.view.end = v0New + vnNew;
+        clampView(n);
+        if (state.hoverIndex !== null && state.hoverIndex !== undefined) {
+          var vEnd = (state.view.end === null) ? n : state.view.end;
+          state.hoverIndex = Math.max(state.view.start, Math.min(vEnd - 1, state.hoverIndex));
+        }
+        state.hoverLabel = null;
+        drawChart();
+        keyboardTip();
+      } else if (ev.key === "Home") {
+        state.view.start = 0;
+        state.view.end = vn;
+        clampView(n);
+        drawChart();
+      } else if (ev.key === "End") {
+        state.view.start = n - vn;
+        state.view.end = null;
+        clampView(n);
+        drawChart();
+      } else {
+        handled = false;
+      }
+      if (handled) ev.preventDefault();
+    });
+    cv.addEventListener("mousemove", function (ev) {
+      var L = state.layout;
+      if (!L) return;
+      chartHot = true;           /* 兜底：合成/异常路径未触发 mouseenter 时也能进入键盘模式 */
+      if (state.drag) return;    /* 拖动平移中不响应悬停 */
+      var r = cv.getBoundingClientRect();
+      var mx = ev.clientX - r.left, my = ev.clientY - r.top;
+      /* 事件标签命中：悬停放大 + 显示事件详情 */
+      var labs2 = L.eventLabels || [];
+      var hitIdx = null;
+      for (var li = 0; li < labs2.length; li++) {
+        var rc = labs2[li] && labs2[li].__rect;
+        if (rc && mx >= rc.x && mx <= rc.x + rc.w && my >= rc.y && my <= rc.y + rc.h) { hitIdx = li; break; }
+      }
+      if (hitIdx !== state.hoverLabel) { state.hoverLabel = hitIdx; drawChart(); }
+      if (hitIdx !== null) { showEventTip(labs2[hitIdx], mx, my); return; }
+      if (mx >= L.plotX - 2 && mx <= L.plotX + L.plotW + 2) {
+        var i = nearestIndex(mx);
+        if (i !== state.hoverIndex) { state.hoverIndex = i; drawChart(); }
+        updateTip(mx, my);
+      } else {
+        if (state.hoverIndex !== null) { state.hoverIndex = null; drawChart(); }
+        els.tip.style.display = "none";
+      }
+    });
+    cv.addEventListener("mouseleave", function () {
+      if (state.hoverIndex !== null) { state.hoverIndex = null; drawChart(); }
+      if (state.hoverLabel !== null) { state.hoverLabel = null; drawChart(); }
+      els.tip.style.display = "none";
+    });
+  }
+
+  /* ==================== 大盘K线图（独立绘制，样式参照个股图，支持日/周/月/年切换） ==================== */
+  var idxChartCache = {};
+  var idxPeriod = { sh000001: "day", sz399006: "day" };
+  /* 视窗状态：code -> {start, end}（end=null 表示到末尾），机制与个股 state.view 一致 */
+  var idxView = { sh000001: { start: 0, end: null }, sz399006: { start: 0, end: null } };
+  var idxLayout = {};   /* code -> 最近一次绘制布局（plotX/plotW/bt/v0/vn/n），供滚轮/拖动换算 */
+  var idxLastBars = {}; /* code -> 最近一次加载的K线数量，用于「K线数量」变化时重置视窗 */
+  var idxHover = { sh000001: null, sz399006: null }; /* code -> 十字光标所在K线索引（悬停/键盘共用） */
+  var idxHot = {};     /* code -> 鼠标是否在图上（键盘交互生效条件，同个股 chartHot） */
+  var idxTip = {};     /* code -> 悬停详情浮窗 DOM（首次使用时动态创建） */
+  var idxCurData = {}; /* code -> 当前展示的数据（含缓存命中路径），供交互重绘/浮窗取数 */
+  var IDX_PERIOD_CN = { day: "日线", week: "周线", month: "月线", year: "年线" };
+  function idxBars() {
+    var v = parseInt(els.barsSelect ? els.barsSelect.value : "160", 10);
+    return isFinite(v) && v > 0 ? v : 160;
+  }
+  function idxChartTitleCN(p, n) {
+    var cnt = (n && n > 0) ? ("·" + n + "根") : "";
+    return p === "day" ? ("K线图 · 威科夫标注（日线" + cnt + "）")
+      : "K线图（" + IDX_PERIOD_CN[p] + cnt + "）· 供需线与冰线按本周期计算（事件标注以日线为准）";
+  }
+  function loadIndexChart(code, canvasId) {
+    var p = idxPeriod[code] || "day";
+    var b = idxBars();
+    var key = code + "|" + p + "|" + b;
+    var cached = idxChartCache[key];
+    if (cached && Date.now() - cached.ts < 300000) {
+      idxCurData[code] = cached.data;
+      var cv0 = $(canvasId);
+      if (cv0) drawIndexChart(cv0, cached.data, code);
+      var tt0 = $(canvasId + "Title");
+      if (tt0) tt0.textContent = idxChartTitleCN(p, arr(cached.data.dates).length);
+      return;
+    }
+    /* 「K线数量」变化时重置视窗（同周期切换），避免旧视窗落在新数据之外 */
+    if (idxLastBars[code] !== undefined && idxLastBars[code] !== b) {
+      idxView[code] = { start: 0, end: null };
+    }
+    idxLastBars[code] = b;
+    fetch("/api/index_chart?code=" + encodeURIComponent(code) + "&period=" + encodeURIComponent(p) + "&bars=" + b)
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || j.ok !== true) return;
+        idxCurData[code] = j;
+        idxChartCache[key] = { ts: Date.now(), data: j, canvasId: canvasId, code: code, bars: b };
+        var cv = $(canvasId);
+        if (cv) drawIndexChart(cv, j, code);
+        var tt = $(canvasId + "Title");
+        if (tt) tt.textContent = idxChartTitleCN(p, arr(j.dates).length);
+      }).catch(function () {});
+  }
+  function loadIndexCharts() {
+    bindIndexChartInteract($("mktChart"), "sh000001");
+    bindIndexChartInteract($("mkt2Chart"), "sz399006");
+    loadIndexChart("sh000001", "mktChart");
+    loadIndexChart("sz399006", "mkt2Chart");
+  }
+  function bindIndexPeriodTabs() {
+    ["mktPeriods", "mkt2Periods"].forEach(function (boxId) {
+      var box = $(boxId);
+      if (!box || box.dataset.bound) return;
+      box.dataset.bound = "1";
+      box.addEventListener("click", function (ev) {
+        var t = ev.target;
+        if (!t || !t.classList || !t.classList.contains("ptab")) return;
+        var p = str(t.dataset ? t.dataset.p : t.getAttribute("data-p"));
+        if (!p || idxPeriod[box.dataset.code] === p) return;
+        idxPeriod[box.dataset.code] = p;
+        idxView[box.dataset.code] = { start: 0, end: null };   /* 周期切换后重置视窗（同个股） */
+        var spans = box.querySelectorAll(".ptab");
+        for (var i = 0; i < spans.length; i++) {
+          spans[i].classList.toggle("on", (spans[i].getAttribute("data-p") === p));
+        }
+        var titleEl = $(box.dataset.cv + "Title");
+        if (titleEl) titleEl.textContent = idxChartTitleCN(p, idxBars());
+        loadIndexChart(box.dataset.code, box.dataset.cv);
+      });
+    });
+  }
+  /* 视窗 clamp（与个股一致）：保证 [start,end) 落在 [0,n) 内，最小窗口 10 根 */
+  function idxClampView(code, n) {
+    var view = idxView[code] || (idxView[code] = { start: 0, end: null });
+    var v0 = (typeof view.start === "number" && isFinite(view.start)) ? Math.round(view.start) : 0;
+    var vn = (view.end !== null && view.end !== undefined) ? Math.round(view.end) - v0 : n - v0;
+    if (!(vn > 0)) vn = n;
+    if (vn < 10) vn = 10;
+    if (vn > n) vn = n;
+    if (v0 < 0) v0 = 0;
+    if (v0 + vn > n) v0 = n - vn;
+    view.start = v0;
+    view.end = (v0 + vn >= n) ? null : v0 + vn;
+    return { v0: v0, vn: vn };
+  }
+  function drawIndexChart(cv, d, code) {
+    if (!cv) return;
+    var W = Math.max(320, cv.clientWidth || 600), H = 280;
+    cv.width = W; cv.height = H;
+    var ctx = cv.getContext("2d");
+    ctx.clearRect(0, 0, W, H);
+    var dates = arr(d.dates), opens = arr(d.open), highs = arr(d.high), lows = arr(d.low),
+        closes = arr(d.close), vols = arr(d.volume), evs = arr(d.events), tls = arr(d.trend_lines);
+    var n = closes.length;
+    if (!n) return;
+    /* 视窗：clamp 后写回 idxView，hi/lo/vmax 只按可见区间计算（同个股 computeLayout 口径） */
+    var vw = idxClampView(code, n);
+    var v0 = vw.v0, vn = vw.vn;
+    var PAD_T = 12, PAD_R = 56, GAP = 8, VOLH = 44, XLBL = 16;
+    var plotX = 2, plotW = W - PAD_R - plotX;
+    var priceY = PAD_T, priceH = H - PAD_T - GAP - VOLH - XLBL - 2;
+    var volY = priceY + priceH + GAP, volH = VOLH;
+    var bt = vn > 0 ? plotW / vn : 1;
+    idxLayout[code] = { plotX: plotX, plotW: plotW, bt: bt, v0: v0, vn: vn, n: n };
+    var hi = -Infinity, lo = Infinity, vmax = 0, i;
+    for (i = v0; i < v0 + vn; i++) {
+      var hv = num(highs[i]), lv = num(lows[i]), vv = num(vols[i]);
+      if (hv !== null) hi = Math.max(hi, hv);
+      if (lv !== null) lo = Math.min(lo, lv);
+      if (vv !== null && vv > vmax) vmax = vv;
+    }
+    if (!isFinite(hi) || !isFinite(lo)) return;
+    if (hi === lo) { hi = hi + 1; lo = lo - 1; }
+    var padP = (hi - lo) * 0.07; hi += padP; lo -= padP;
+    function X(idx) { return plotX + bt * (idx - v0) + bt / 2; }
+    function PY(p) { return priceY + (hi - p) / (hi - lo) * priceH; }
+    function VY(v) { return volY + volH - (vmax > 0 ? v / vmax * (volH - 4) : 0); }
+    var pre = hi > 5000 ? 0 : 2;
+    /* 布局补充字段：供十字光标横线定位/键盘缩放/浮窗精度使用（与个股 state.layout 同构） */
+    idxLayout[code].priceY = priceY; idxLayout[code].priceH = priceH;
+    idxLayout[code].hi = hi; idxLayout[code].lo = lo; idxLayout[code].pre = pre;
+    /* 网格 + 价格刻度 */
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.fillStyle = C.dim2; ctx.font = "10px Consolas, monospace";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    for (i = 0; i <= 4; i++) {
+      var gy = Math.round(priceY + priceH * i / 4) + 0.5;
+      ctx.beginPath(); ctx.moveTo(plotX, gy); ctx.lineTo(plotX + plotW, gy); ctx.stroke();
+      ctx.fillText((hi - (hi - lo) * i / 4).toFixed(pre), plotX + plotW + 6, gy);
+    }
+    /* 交易区间：冰线 / 溪流（黄色虚线，同个股区间标注；加裁剪防缩放后越界）
+       周/月/年线同样绘制区间上下沿（高周期区间可能只满足弱区间，仍作为重要支撑/压力线展示） */
+    var rng = obj(d.range);
+    if (num(rng.high) > 0 && num(rng.low) > 0 && (rng.valid === true || str(d.period) !== "day")) {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(plotX, priceY, plotW, priceH); ctx.clip();
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = C.range; ctx.lineWidth = 1;
+      var ry1 = PY(num(rng.high));
+      ctx.beginPath(); ctx.moveTo(plotX, ry1 + 0.5); ctx.lineTo(plotX + plotW, ry1 + 0.5); ctx.stroke();
+      var ry2 = PY(num(rng.low));
+      ctx.beginPath(); ctx.moveTo(plotX, ry2 + 0.5); ctx.lineTo(plotX + plotW, ry2 + 0.5); ctx.stroke();
+      ctx.fillStyle = C.range; ctx.font = "10px Microsoft YaHei, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "bottom";
+      ctx.fillText("Creek " + num(rng.high).toFixed(pre), plotX + 4, PY(num(rng.high)) - 2);
+      ctx.textBaseline = "top";
+      ctx.fillText("Ice " + num(rng.low).toFixed(pre), plotX + 4, PY(num(rng.low)) + 2);
+      ctx.restore();
+    }
+    /* 供给线 / 需求线（同个股样式） */
+    for (i = 0; i < tls.length; i++) {
+      var tl = obj(tls[i]);
+      var ai = num(tl.a_index), bi = num(tl.b_index), ap = num(tl.a_price), bp = num(tl.b_price);
+      if (ai === null || bi === null || ap === null || bp === null || bi <= ai) continue;
+      var isSup = tl.kind === "supply";
+      var slope = (bp - ap) / (bi - ai);
+      var pEnd = bp + slope * ((n - 1) - bi);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(plotX, priceY, plotW, priceH); ctx.clip();
+      ctx.strokeStyle = isSup ? "rgba(239,68,68,.8)" : "rgba(56,189,248,.85)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(X(ai), PY(ap)); ctx.lineTo(plotX + plotW, PY(pEnd)); ctx.stroke();
+      ctx.fillStyle = isSup ? "rgba(239,68,68,.95)" : "rgba(56,189,248,.95)";
+      ctx.font = "10px Microsoft YaHei, sans-serif"; ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+      ctx.fillText((isSup ? "Supply " : "Demand ") + pEnd.toFixed(pre), plotX + plotW - 4, PY(pEnd) - 2);
+      ctx.restore();
+    }
+    /* 成交量 */
+    var bw = Math.max(1, bt * 0.68);
+    for (i = v0; i < v0 + vn; i++) {
+      vv = num(vols[i]); if (vv === null) continue;
+      var ov = num(opens[i]), clv = num(closes[i]);
+      ctx.fillStyle = (clv !== null && ov !== null && clv >= ov) ? "rgba(239,68,68,.72)" : "rgba(34,197,94,.72)";
+      var vy = VY(vv);
+      ctx.fillRect(X(i) - bw / 2, vy, bw, Math.max(1, volY + volH - vy));
+    }
+    /* K线 */
+    for (i = v0; i < v0 + vn; i++) {
+      ov = num(opens[i]); var hh2 = num(highs[i]), ll2 = num(lows[i]); clv = num(closes[i]);
+      if (hh2 === null || ll2 === null) continue;
+      var col = (clv !== null && ov !== null) ? (clv >= ov ? C.up : C.down) : C.dim;
+      var xc = X(i);
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(Math.round(xc) + 0.5, PY(hh2)); ctx.lineTo(Math.round(xc) + 0.5, PY(ll2)); ctx.stroke();
+      if (ov !== null && clv !== null) {
+        var yo = PY(ov), yc = PY(clv);
+        ctx.fillRect(xc - bw / 2, Math.min(yo, yc), bw, Math.max(1, Math.abs(yc - yo)));
+      }
+    }
+    /* 威科夫事件标签（同个股：圆角标签 + 引线，看涨在上、看跌在下；仅画视窗内事件） */
+    var labs = [];
+    for (i = 0; i < evs.length; i++) {
+      var e = obj(evs[i]);
+      var eidx = num(e.index);
+      if (eidx === null || eidx < v0 || eidx >= v0 + vn) continue;
+      var pe = num(e.price); if (pe === null) pe = num(closes[eidx]); if (pe === null) continue;
+      var text = str(e.type) || "EV";   /* 图上只画英文缩写，中文释义见图下注释 */
+      labs.push({ x: X(eidx), price: pe, text: trimLabel(text, 8), bullish: e.bullish === true,
+                  kind: labelKind(e), idx: eidx });
+    }
+    labs.sort(function (a, b) { return a.idx - b.idx; });
+    ctx.font = "10px Microsoft YaHei, sans-serif";
+    for (i = 0; i < labs.length; i++) {
+      var lb = labs[i];
+      var above = lb.bullish;
+      var anchor = above ? (num(lows[lb.idx]) !== null ? num(lows[lb.idx]) : lb.price)
+                         : (num(highs[lb.idx]) !== null ? num(highs[lb.idx]) : lb.price);
+      var ay = PY(anchor);
+      var tw = ctx.measureText(lb.text).width + 8, bh = 14;
+      var ly = above ? ay - 6 - bh - (i % 2) * (bh + 3) : ay + 6 + (i % 2) * (bh + 3);
+      var bx = Math.max(plotX + 1, Math.min(plotX + plotW - tw - 1, lb.x - tw / 2));
+      var lc = labelColor(lb.kind);
+      ctx.strokeStyle = lc; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(lb.x, above ? ay - 1 : ay + 1); ctx.lineTo(lb.x, above ? ly + bh : ly); ctx.stroke();
+      roundRect(ctx, bx, ly, tw, bh, 3);
+      ctx.fillStyle = "rgba(10,14,19,.9)"; ctx.fill();
+      ctx.strokeStyle = lc; ctx.stroke();
+      ctx.fillStyle = lc; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(lb.text, bx + tw / 2, ly + bh / 2 + 0.5);
+    }
+    /* 十字光标（与个股图一致：竖线 + 横线 + 右侧价格气泡 + 底部日期气泡） */
+    var ihv = idxHover[code];
+    if (ihv !== null && ihv !== undefined && ihv >= v0 && ihv < v0 + vn) {
+      var ihx = Math.round(X(ihv)) + 0.5;
+      ctx.save();
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = C.cross;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ihx, priceY);
+      ctx.lineTo(ihx, volY + volH);
+      ctx.stroke();
+      ctx.restore();
+      var ihc = num(closes[ihv]);
+      if (ihc !== null) {
+        var ihy = Math.round(PY(ihc)) + 0.5;
+        ctx.save();
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = C.cross;
+        ctx.beginPath();
+        ctx.moveTo(plotX, ihy);
+        ctx.lineTo(plotX + plotW, ihy);
+        ctx.stroke();
+        ctx.restore();
+        /* 右侧价格气泡 */
+        var ipTxt = ihc.toFixed(pre);
+        ctx.font = "10px Consolas, monospace";
+        var iptw = ctx.measureText(ipTxt).width + 10;
+        roundRect(ctx, plotX + plotW + 3, ihy - 9, Math.min(iptw, PAD_R - 6), 18, 3);
+        ctx.fillStyle = "#334155";
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(ipTxt, plotX + plotW + 3 + Math.min(iptw, PAD_R - 6) / 2, ihy);
+      }
+      /* 底部日期气泡 */
+      var idTxt = ymd(dates[ihv]);
+      if (idTxt) {
+        ctx.font = "10px Consolas, monospace";
+        var idtw = ctx.measureText(idTxt).width + 10;
+        var idxx = Math.max(plotX, Math.min(plotX + plotW - idtw, ihx - idtw / 2));
+        roundRect(ctx, idxx, volY + volH + 2, idtw, 15, 3);
+        ctx.fillStyle = "#334155";
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(idTxt, idxx + idtw / 2, volY + volH + 9.5);
+      }
+    }
+    /* 操作提示（同个股图右上角） */
+    ctx.fillStyle = C.dim2; ctx.font = "10px Microsoft YaHei, sans-serif";
+    ctx.textAlign = "right"; ctx.textBaseline = "top";
+    ctx.fillText("Wheel zoom / drag pan / dbl-click reset", plotX + plotW - 4, priceY + 2);
+    /* 日期刻度：按可视宽度取密度，与个股一致 */
+    ctx.fillStyle = C.dim2; ctx.font = "10px Consolas, monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    var tickN = Math.max(3, Math.floor(plotW / 92));
+    for (i = 0; i <= tickN; i++) {
+      var di = v0 + Math.round((vn - 1) * i / tickN);
+      if (di > v0 + vn - 1) di = v0 + vn - 1;
+      var dtxt = str(dates[di]);
+      if (dtxt.length > 7) dtxt = dtxt.slice(5);   /* 年线 date 为年份字符串，直接显示 */
+      ctx.fillText(dtxt, Math.max(plotX + 22, Math.min(plotX + plotW - 22, X(di))), volY + volH + 4);
+    }
+  }
+  /* 大盘图交互：滚轮缩放 / 拖动平移 / 双击复位（机制与个股图完全一致） */
+  function bindIndexChartInteract(cv, code) {
+    if (!cv || cv.dataset.ibound) return;
+    cv.dataset.ibound = "1";
+    function curData() {
+      /* 当前展示数据由 loadIndexChart 写入 idxCurData（缓存键含数量后缀，不能按 code|period 反查） */
+      return idxCurData[code] || null;
+    }
+    function redraw() {
+      var d = curData();
+      if (d) drawIndexChart(cv, d, code);
+    }
+    function readView(nn) {
+      var view = idxView[code] || (idxView[code] = { start: 0, end: null });
+      var v0 = (typeof view.start === "number" && isFinite(view.start)) ? Math.round(view.start) : 0;
+      var vn = (view.end !== null && view.end !== undefined) ? Math.round(view.end) - v0 : nn - v0;
+      if (!(vn > 0)) vn = nn;
+      return { v0: v0, vn: vn };
+    }
+    /* 滚轮缩放：以鼠标所在K线为锚点 */
+    cv.addEventListener("wheel", function (ev) {
+      var L = idxLayout[code];
+      if (!L || !curData()) return;
+      ev.preventDefault();
+      var r = cv.getBoundingClientRect();
+      var mx = ev.clientX - r.left;
+      var b = readView(L.n);
+      var ai = b.v0 + (mx - L.plotX) / L.bt;             /* 锚点索引（可为小数） */
+      var k = ev.deltaY > 0 ? 1.25 : 0.8;                /* 下滚缩小，上滚放大 */
+      var vnNew = Math.round(b.vn * k);
+      var v0New = ai - (ai - b.v0) * (vnNew / b.vn);     /* 锚点处保持不动 */
+      idxView[code].start = v0New;
+      idxView[code].end = v0New + vnNew;
+      idxClampView(code, L.n);
+      idxHover[code] = null;                 /* 同个股：缩放后清除十字光标 */
+      var t9 = idxTip[code]; if (t9) t9.style.display = "none";
+      redraw();
+    }, { passive: false });
+    /* 拖动平移 */
+    cv.addEventListener("mousedown", function (ev) {
+      var L = idxLayout[code];
+      if (!L || ev.button !== 0) return;
+      var r = cv.getBoundingClientRect();
+      var mx = ev.clientX - r.left;
+      if (mx < L.plotX || mx > L.plotX + L.plotW) return;
+      var b = readView(L.n);
+      cv._idxDrag = { x: ev.clientX, v0: b.v0, vn: b.vn, bt: L.bt, n: L.n };
+      cv.style.cursor = "grabbing";
+      ev.preventDefault();
+    });
+    window.addEventListener("mousemove", function (ev) {
+      var dg = cv._idxDrag;
+      if (!dg) return;
+      var offset = Math.round((ev.clientX - dg.x) / dg.bt);
+      var v0 = dg.v0 - offset;
+      idxView[code].start = v0;
+      idxView[code].end = (dg.vn >= dg.n) ? null : v0 + dg.vn;
+      idxClampView(code, dg.n);
+      redraw();
+    });
+    window.addEventListener("mouseup", function () {
+      if (cv._idxDrag) { cv._idxDrag = null; cv.style.cursor = "crosshair"; }
+    });
+    /* 双击复位 */
+    cv.addEventListener("dblclick", function () {
+      idxView[code] = { start: 0, end: null };
+      idxHover[code] = null;
+      var t8 = idxTip[code]; if (t8) t8.style.display = "none";
+      redraw();
+    });
+    /* ===== 十字光标 / 悬停详情 / 键盘交互（与个股图完全一致） ===== */
+    cv.style.cursor = "crosshair";
+    function idxTipEl() {
+      if (idxTip[code]) return idxTip[code];
+      var wrap = cv.parentElement;
+      if (!wrap) return null;
+      if (getComputedStyle(wrap).position === "static") wrap.style.position = "relative";
+      var t = document.createElement("div");
+      t.className = "idxTip";
+      wrap.appendChild(t);
+      idxTip[code] = t;
+      return t;
+    }
+    function idxNearest(mx) {
+      var L = idxLayout[code];
+      if (!L) return null;
+      var i = L.v0 + Math.floor((mx - L.plotX) / L.bt);
+      if (i < L.v0) i = L.v0;
+      if (i > L.v0 + L.vn - 1) i = L.v0 + L.vn - 1;
+      return i;
+    }
+    function updateIdxTip(x, y) {
+      var t = idxTipEl();
+      var d = curData();
+      var i = idxHover[code];
+      if (!t || !d || i === null || i === undefined) { if (t) t.style.display = "none"; return; }
+      var dates = arr(d.dates), opens = arr(d.open), highs = arr(d.high), lows = arr(d.low),
+          closes = arr(d.close), vols = arr(d.volume);
+      var pre = (idxLayout[code] && idxLayout[code].pre !== undefined) ? idxLayout[code].pre : 2;
+      var o = num(opens[i]), h = num(highs[i]), l = num(lows[i]), cl = num(closes[i]);
+      var prevC = i > 0 ? num(closes[i - 1]) : null;
+      var chg = (cl !== null && prevC !== null && prevC !== 0) ? (cl - prevC) : null;
+      var chgPct = (chg !== null && prevC) ? chg / prevC * 100 : null;
+      var v = num(vols[i]);
+      var vma = ma(vols, i, 5);
+      var vr = (v !== null && vma !== null && vma > 0) ? v / vma : null;
+      var rows = [];
+      rows.push('<div class="tt">' + esc(ymd(dates[i]) || ("# " + i)) + "</div>");
+      rows.push('<span class="tk">开</span>' + esc(px(o, pre)) + '　<span class="tk">高</span>' + esc(px(h, pre)));
+      rows.push('<span class="tk">低</span>' + esc(px(l, pre)) + '　<span class="tk">收</span>' + esc(px(cl, pre)));
+      rows.push('<span class="tk">涨跌</span><span class="' + cls(chgPct) + '">' + esc(sgn(chg, pre)) + " / " + esc(pct(chgPct)) + "</span>");
+      if (v !== null) rows.push('<span class="tk">量</span>' + esc(fmtMoneyPrice(v)) + (vr !== null ? '　<span class="tk">量比</span>' + esc(nf(vr, 2)) : ""));
+      t.innerHTML = rows.join("<br>");
+      t.style.display = "block";
+      var tw = t.offsetWidth, th = t.offsetHeight;
+      var baseL = cv.offsetLeft, baseT = cv.offsetTop;
+      var wrapH = cv.parentElement.clientHeight;
+      var tx = baseL + x + 16, ty = baseT + y + 12;
+      if (tx + tw > baseL + cv.clientWidth - 4) tx = Math.max(baseL + 4, baseL + x - tw - 16);
+      if (ty + th > wrapH - 4) ty = Math.max(4, wrapH - th - 4);
+      t.style.left = tx + "px";
+      t.style.top = ty + "px";
+    }
+    /* 键盘：←/→ 移动十字光标（触视窗边界整窗平移一根），↑/↓ 以光标为锚缩放，Home/End 跳最前/最后 */
+    idxHot[code] = false;
+    cv.addEventListener("mouseenter", function () { idxHot[code] = true; });
+    cv.addEventListener("mouseleave", function () {
+      idxHot[code] = false;
+      if (idxHover[code] !== null) { idxHover[code] = null; redraw(); }
+      var t5 = idxTip[code]; if (t5) t5.style.display = "none";
+    });
+    function keyboardTip() {
+      var L2 = idxLayout[code], d2 = curData(), i2 = idxHover[code];
+      if (!L2 || !d2 || i2 === null || i2 === undefined) {
+        var t0 = idxTip[code]; if (t0) t0.style.display = "none";
+        return;
+      }
+      var cl2 = num(arr(d2.close)[i2]);
+      var tx2 = L2.plotX + L2.bt * (i2 - L2.v0) + L2.bt / 2;
+      var ty2 = (cl2 !== null && L2.hi !== undefined) ? L2.priceY + (L2.hi - cl2) / (L2.hi - L2.lo) * L2.priceH
+                                                      : L2.priceY + L2.priceH / 2;
+      updateIdxTip(tx2, ty2);
+    }
+    window.addEventListener("keydown", function (ev) {
+      var ae = document.activeElement;
+      if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.tagName === "SELECT" || ae.isContentEditable)) return;
+      if (!idxHot[code]) return;             /* 鼠标不在本图上时不劫持按键（同个股 chartHot） */
+      var d = curData();
+      var L = idxLayout[code];
+      if (!d || !L) return;
+      var n = arr(d.close).length;
+      var view = idxView[code] || (idxView[code] = { start: 0, end: null });
+      var v0 = L.v0, vn = L.vn, handled = true;
+      if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") {
+        var hi2 = (idxHover[code] === null || idxHover[code] === undefined) ? v0 + vn - 1 : idxHover[code];
+        hi2 += (ev.key === "ArrowLeft" ? -1 : 1);
+        if (hi2 < v0) v0 -= 1;               /* 触到视窗左边界：窗口整体左移一根 */
+        if (hi2 > v0 + vn - 1) v0 += 1;      /* 触到右边界：右移一根 */
+        if (v0 < 0) v0 = 0;
+        if (v0 + vn > n) v0 = n - vn;
+        hi2 = Math.max(v0, Math.min(v0 + vn - 1, hi2));
+        view.start = v0;
+        view.end = (v0 + vn >= n) ? null : v0 + vn;
+        idxHover[code] = hi2;
+        redraw();
+        keyboardTip();
+      } else if (ev.key === "ArrowUp" || ev.key === "ArrowDown") {
+        var k = ev.key === "ArrowUp" ? 0.8 : 1.25;
+        var ai = (idxHover[code] === null || idxHover[code] === undefined) ? v0 + vn / 2 : idxHover[code];
+        var vnNew = Math.round(vn * k);
+        var v0New = ai - (ai - v0) * (vnNew / vn);
+        view.start = v0New;
+        view.end = v0New + vnNew;
+        idxClampView(code, n);
+        if (idxHover[code] !== null && idxHover[code] !== undefined) {
+          var vEnd = (view.end === null) ? n : view.end;
+          idxHover[code] = Math.max(view.start, Math.min(vEnd - 1, idxHover[code]));
+        }
+        redraw();
+        keyboardTip();
+      } else if (ev.key === "Home") {
+        view.start = 0;
+        view.end = vn;
+        idxClampView(code, n);
+        redraw();
+      } else if (ev.key === "End") {
+        view.start = n - vn;
+        view.end = null;
+        idxClampView(code, n);
+        redraw();
+      } else {
+        handled = false;
+      }
+      if (handled) ev.preventDefault();
+    });
+    cv.addEventListener("mousemove", function (ev) {
+      var L = idxLayout[code];
+      if (!L) return;
+      idxHot[code] = true;                   /* 兜底：合成/异常路径未触发 mouseenter 时也能进入键盘模式 */
+      if (cv._idxDrag) return;               /* 拖动平移中不响应悬停 */
+      var r = cv.getBoundingClientRect();
+      var mx = ev.clientX - r.left, my = ev.clientY - r.top;
+      if (mx >= L.plotX - 2 && mx <= L.plotX + L.plotW + 2) {
+        var i2 = idxNearest(mx);
+        if (i2 !== idxHover[code]) { idxHover[code] = i2; redraw(); }
+        updateIdxTip(mx, my);
+      } else {
+        if (idxHover[code] !== null) { idxHover[code] = null; redraw(); }
+        var t7 = idxTip[code]; if (t7) t7.style.display = "none";
+      }
+    });
+  }
+  window.addEventListener("resize", function () {
+    for (var k in idxChartCache) {
+      var ent = idxChartCache[k];
+      var cv = $(ent.canvasId);
+      if (cv) drawIndexChart(cv, ent.data, ent.code);
+    }
+  });
+
+  /* ==================== 折叠分区（W-M 选股模型 / 个股分析） ==================== */
+  function bindSectionToggle(headId, bodyId) {
+    var head = document.getElementById(headId), body = document.getElementById(bodyId);
+    if (!head || !body) return;
+    head.addEventListener("click", function () {
+      var closed = head.classList.toggle("closed");
+      body.style.display = closed ? "none" : "";   // 收起时箭头右转，内容隐藏
+    });
+  }
+  bindSectionToggle("secWmHead", "secWmBody");     // v32 W-M 选股模型
+  bindSectionToggle("secStkHead", "secStkBody");
+
+  /* ==================== 个股复盘报告（新华保险范式：结论→大盘→高周期→事件链→关键K线→策略→基本面） ==================== */
+  var RP_PERIOD_CN = { week: "周线", month: "月线", year: "年线" };
+  var rpSeq = 0;
+
+  function rpTd(txt, opt) {
+    opt = obj(opt);
+    var st = "padding:4px 8px;border-bottom:1px solid var(--line);vertical-align:top;";
+    if (opt.dim) st += "color:var(--dim);white-space:nowrap;";
+    if (opt.mono) st += "font-family:ui-monospace,Menlo,Consolas,monospace;";
+    if (opt.nowrap) st += "white-space:nowrap;";
+    if (opt.color) st += "color:" + opt.color + ";";
+    if (opt.bold) st += "font-weight:600;";
+    return '<td style="' + st + '">' + txt + '</td>';
+  }
+  function rpTbl(rows, headed, width) {
+    var h = ['<table style="width:' + (width || "100%") + ';border-collapse:collapse;font-size:12px;margin:4px 0 2px">'];
+    if (headed) h.push('<tr>' + headed + '</tr>');
+    for (var i = 0; i < rows.length; i++) h.push("<tr>" + rows[i] + "</tr>");
+    h.push("</table>");
+    return h.join("");
+  }
+  function rpFind(levels, kw) {
+    var ls = arr(levels);
+    for (var i = 0; i < ls.length; i++) {
+      if (str(obj(ls[i]).label).indexOf(kw) >= 0) return num(obj(ls[i]).price);
+    }
+    return null;
+  }
+  function rpLastEvent(events, type) {
+    var ev = arr(events), hit = null;
+    for (var i = 0; i < ev.length; i++) { if (str(obj(ev[i]).type) === type) hit = obj(ev[i]); }
+    return hit;
+  }
+  function rpDistTxt(price, level) {
+    var p = num(price), l = num(level);
+    if (p === null || l === null || l === 0) return "--";
+    return ((p / l - 1) * 100).toFixed(2) + "%";
+  }
+
+  function renderStockReport(d) {
+    var out = $("rpOut");
+    if (!out) return;
+    if (!d || typeof d !== "object" || isArr(d)) {
+      out.innerHTML = '<div class="empty">暂无分析数据（请输入股票代码后查询）。</div>';
+      return;
+    }
+    var m = obj(d.meta), w = obj(d.wyckoff), dec = obj(d.decision), fin = obj(m.financials);
+    var rng = obj(w.range), lt = obj(w.long_trend), mc = obj(w.market_context), bg = obj(w.background);
+    var k = obj(d.kline), nt = obj(w.nine_tests);
+    var price = num(m.price), h = [];
+
+    if (d.ok === false || price === null) {
+      out.innerHTML = '<div class="empty">分析失败：' + esc(str(d.error) || "无行情数据") + "</div>";
+      return;
+    }
+    var lowIce = num(rng.low), highCreek = num(rng.high);
+    if (lowIce !== null && lowIce <= 0) lowIce = null;
+    if (highCreek !== null && highCreek <= 0) highCreek = null;
+
+    /* ---------- 一、结论先行 ---------- */
+    h.push('<div class="blockTitle">一、结论先行</div>');
+    var score = obj(w.score);
+    var rows = [];
+    rows.push(rpTd(esc(str(w.phase_cn) + " · " + str(w.sub_phase_cn)), { bold: true }) +
+      rpTd("置信度 " + nf(w.confidence, 0) + "%　·　多/空/中性评分 " + nf(score.bull, 0) + "/" + nf(score.bear, 0) + "/" + nf(score.neutral, 0)));
+    rows.push(rpTd("长期背景", { dim: true }) +
+      rpTd(esc({ up: "长期上升", down: "长期下降", sideways: "长期宽幅震荡" }[str(lt.dir)] || "结构不明") +
+        "　·　现价处近250根区间 " + (num(lt.pos250) === null ? "--" : (num(lt.pos250) * 100).toFixed(0) + "%") + " 分位"));
+    rows.push(rpTd("交易区间", { dim: true }) +
+      rpTd("溪流 Creek " + nf(highCreek) + "　／　冰线 Ice " + nf(lowIce) + "（" + nf(rng.bars, 0) + " 根，宽度 " + nf(rng.width_pct, 1) + "%）"));
+    rows.push(rpTd("现价", { dim: true }) +
+      rpTd('<span class="mono" style="color:var(--text)">' + nf(price) + "</span>　" +
+        '<span class="' + cls(m.change_pct) + '">' + pct(m.change_pct) + "</span>　·　距冰线 " +
+        rpDistTxt(price, lowIce) + "　·　距溪流 " + rpDistTxt(price, highCreek)));
+    rows.push(rpTd("估值", { dim: true }) +
+      rpTd("PE " + nf(m.pe) + "　·　PB " + nf(m.pb) + "　·　股息率 " + (num(fin.dividend_yield) === null ? "--" : nf(fin.dividend_yield) + "%")));
+    rows.push(rpTd("九大检验", { dim: true }) +
+      rpTd("买入检验通过 " + nf(nt.buy_passed, 0) + "/9　·　卖出检验通过 " + nf(nt.sell_passed, 0) + "/9"));
+    rows.push(rpTd("操作结论", { dim: true }) +
+      rpTd('<b style="color:var(--text)">' + esc(str(dec.action_cn) || "观察") + "</b>（" + esc(str(dec.urgency_cn)) + "）　·　" +
+        esc(str(obj(dec.position).text))));
+    h.push(rpTbl(rows));
+    h.push('<div class="summaryBox" style="border-left-color:var(--warn)">' +
+      esc(str(dec.summary) || str(w.summary)) + "</div>");
+
+    /* ---------- 二、大盘环境（自上而下） ---------- */
+    h.push('<div class="blockTitle" style="margin-top:10px">二、大盘环境（先上证、再创业板）</div>');
+    var idxRows = [];
+    arr(mc.indices).forEach(function (it) {
+      var o = obj(it);
+      idxRows.push(rpTd(esc(str(o.name)), { dim: true, nowrap: true }) +
+        rpTd('<span class="mono">' + nf(o.price) + '</span>　<span class="' + cls(o.change_pct) + '">' + pct(o.change_pct) + "</span>", { nowrap: true }));
+    });
+    if (idxRows.length) h.push(rpTbl(idxRows, null, "auto"));
+    var shP = obj(mc.phase), cybP = obj(mc.cyb_phase), shW = obj(mc.wyckoff);
+    var infoRows = [];
+    infoRows.push(rpTd("上证指数", { dim: true }) +
+      rpTd(esc(str(obj(mc.trend).text)) + "　·　阶段：" + esc(str(shP.phase_cn)) + "（" + esc(str(shP.sub_phase_cn)) + "）" +
+        (num(obj(shW.range).low) !== null ? "　·　区间 " + nf(obj(shW.range).low) + "~" + nf(obj(shW.range).high) : "")));
+    infoRows.push(rpTd("创业板指", { dim: true }) +
+      rpTd(esc(str(obj(mc.cyb_trend).text)) + "　·　阶段：" + esc(str(cybP.phase_cn)) + "（" + esc(str(cybP.sub_phase_cn)) + "）"));
+    h.push(rpTbl(infoRows));
+    if (str(bg.interaction)) h.push('<div class="miniNote" style="margin-top:4px">联动判断：' + esc(str(bg.interaction)) + "</div>");
+
+    /* ---------- 三、长期与高周期结构 ---------- */
+    h.push('<div class="blockTitle" style="margin-top:10px">三、长期与周/月/年结构</div>');
+    h.push('<div class="miniNote">长期背景：' + esc(str(lt.text) || "结构不明") + "</div>");
+    h.push('<div id="rpLinesBox"><div class="miniNote">周/月/年线关键线加载中…</div></div>');
+
+    /* ---------- 四、日线阶段与事件链 ---------- */
+    h.push('<div class="blockTitle" style="margin-top:10px">四、日线威科夫阶段与事件链</div>');
+    h.push('<div class="miniNote">区间：' + nf(rng.bars, 0) + " 根（" + esc(ymd(rng.start)) + " ~ " + esc(ymd(rng.end)) +
+      "）　摸上沿 " + nf(rng.touches_high, 0) + " 次／摸下沿 " + nf(rng.touches_low, 0) + " 次　区间内漂移 " +
+      pct(rng.drift_pct) + "　·　因果量度：" + esc(str(obj(w.cause_effect).text)) + "</div>");
+    var evRows = [];
+    var evs = arr(w.events);
+    var evShow = evs.slice(Math.max(0, evs.length - 10));
+    evShow.forEach(function (it) {
+      var o = obj(it), bull = o.bullish === true;
+      evRows.push(rpTd(esc(ymd(o.date)), { dim: true, mono: true, nowrap: true }) +
+        rpTd('<span style="color:' + (bull ? "var(--up)" : "var(--down)") + '">' + (bull ? "▲ " : "▼ ") + esc(str(o.type_cn)) + "</span>", { nowrap: true }) +
+        rpTd('<span class="mono">' + nf(o.price) + "</span>　量比 " + nf(o.volume_ratio) + "　·　" + esc(str(o.desc))));
+    });
+    if (evRows.length) {
+      h.push(rpTbl(evRows, rpTd("日期", { dim: true }) + rpTd("事件", { dim: true }) + rpTd("价格 · 说明", { dim: true })));
+    } else {
+      h.push('<div class="miniNote">本周期未识别到威科夫事件。</div>');
+    }
+    var cnts = obj(w.counts), cntTxt = [];
+    for (var ck in cnts) { if (Object.prototype.hasOwnProperty.call(cnts, ck)) cntTxt.push(ck + " " + nf(cnts[ck], 0)); }
+    h.push('<div class="miniNote" style="margin-top:4px">事件统计：' + esc(cntTxt.join("　·　") || "--") + "</div>");
+    h.push('<div class="miniNote">量价：' + esc(str(obj(w.volume_analysis).text)) +
+      "　·　努力与结果：" + esc(str(obj(w.effort_result).text)) + "</div>");
+    var vsa = arr(w.vsa), vsaShow = vsa.slice(Math.max(0, vsa.length - 3));
+    if (vsaShow.length) {
+      var vsaTxt = vsaShow.map(function (it) {
+        var o = obj(it);
+        return ymd(o.date) + " " + str(o.type_cn) + "（量比 " + nf(o.volume_ratio) + "，" + str(o.desc) + "）";
+      }).join("；");
+      h.push('<div class="miniNote">最近 VSA 量价信号：' + esc(vsaTxt) + "</div>");
+    }
+    if (str(obj(w.composite).text)) h.push('<div class="miniNote">主力行为链：' + esc(str(obj(w.composite).text)) + "</div>");
+
+    /* ---------- 五、关键K线案例式解读 ---------- */
+    h.push('<div class="blockTitle" style="margin-top:10px">五、关键K线案例式解读（<span style="color:var(--dim2)">按《新威科夫操盘法》识别规则，最近40根</span>）</div>');
+    var kc = arr(k.key_candles), kcShow = kc.slice(Math.max(0, kc.length - 8)), kcRows = [];
+    kcShow.forEach(function (it) {
+      var o = obj(it), up = str(o.tone) === "up";
+      kcRows.push(rpTd(esc(ymd(o.date)), { dim: true, mono: true, nowrap: true }) +
+        rpTd(nf(o.vr), { mono: true, nowrap: true }) +
+        rpTd('<span style="color:' + (up ? "var(--up)" : "var(--down)") + '">' + esc(str(o.title)) + "</span>", { nowrap: true }) +
+        rpTd(esc(str(o.text))));
+    });
+    if (kcRows.length) {
+      h.push(rpTbl(kcRows, rpTd("日期", { dim: true }) + rpTd("量比", { dim: true }) + rpTd("行为判定", { dim: true }) + rpTd("决策含义", { dim: true })));
+    }
+    var cps = arr(k.candle_patterns), cpShow = cps.slice(Math.max(0, cps.length - 6)), cpRows = [];
+    cpShow.forEach(function (it) {
+      var o = obj(it), bull = o.bullish === true;
+      cpRows.push(rpTd(esc(ymd(o.date)), { dim: true, mono: true, nowrap: true }) +
+        rpTd('<span style="color:' + (bull ? "var(--up)" : "var(--down)") + '">' + esc(str(o.name_cn)) + "</span>", { nowrap: true }) +
+        rpTd(esc(str(o.note))));
+    });
+    if (cpRows.length) {
+      h.push('<div class="blockTitle" style="margin-top:8px">K线组合形态</div>');
+      h.push(rpTbl(cpRows, rpTd("日期", { dim: true }) + rpTd("组合", { dim: true }) + rpTd("决策含义", { dim: true })));
+    }
+    var trs = arr(k.trends), trShow = trs.slice(Math.max(0, trs.length - 3)), trRows = [];
+    trShow.forEach(function (it) {
+      var o = obj(it), up = str(o.kind) === "up";
+      trRows.push(rpTd('<span style="color:' + (up ? "var(--up)" : "var(--down)") + '">' + esc(str(o.label)) + "</span>", { nowrap: true }) +
+        rpTd(esc(ymd(o.start_date)) + " → " + esc(ymd(o.end_date)), { nowrap: true }) +
+        rpTd(pct(o.chg_pct), { mono: true, nowrap: true }) +
+        rpTd(esc(str(o.note))));
+    });
+    if (trRows.length) {
+      h.push('<div class="blockTitle" style="margin-top:8px">次级趋势段</div>');
+      h.push(rpTbl(trRows, rpTd("趋势", { dim: true }) + rpTd("区间", { dim: true }) + rpTd("振幅", { dim: true }) + rpTd("决策含义", { dim: true })));
+    }
+
+    /* ---------- 六、买卖策略 ---------- */
+    h.push('<div class="blockTitle" style="margin-top:10px">六、买卖策略（可直接执行）</div>');
+    var stRows = [];
+    stRows.push(rpTd("决策", { dim: true }) + rpTd('<b style="color:var(--text)">' + esc(str(dec.action_cn) || "--") + "</b>　·　" + esc(str(dec.summary))));
+    var zone = arr(obj(dec.entry).zone);
+    stRows.push(rpTd("入场区间", { dim: true }) + rpTd(nf(zone[0]) + " ~ " + nf(zone[1]) +
+      "（理想买点 " + nf(obj(dec.entry).ideal) + "）　·　" + esc(str(obj(dec.entry).basis))));
+    stRows.push(rpTd("止损 / 失效", { dim: true }) + rpTd("结构止损 " + nf(obj(dec.stop).price) + "（" + pct(obj(dec.stop).pct) + "）" + "　·　" + esc(str(obj(dec.stop).basis))));
+    var tg = arr(dec.targets), tgTxt = tg.map(function (it) {
+      var o = obj(it);
+      return nf(o.price) + "（" + pct(o.pct) + "，" + str(o.basis) + "）";
+    }).join("；");
+    stRows.push(rpTd("目标位", { dim: true }) + rpTd(esc(tgTxt || "--")));
+    stRows.push(rpTd("风险收益比", { dim: true }) + rpTd(nf(dec.risk_reward) + "　·　建议仓位：" + esc(str(obj(dec.position).text))));
+    h.push(rpTbl(stRows));
+
+    var lpsy = obj(rpLastEvent(w.events, "LPSY")), sow = obj(rpLastEvent(w.events, "SOW"));
+    var ma60 = rpFind(w.levels, "MA60"), spring = rpFind(w.levels, "弹簧");
+    var st1 = [];
+    st1.push("① 持仓者：反抽 " + nf(lpsy.price) + "~" + nf(sow.price) + "（最后供给点／弱势信号起点）减仓 1/2；" +
+      "反抽 " + nf(ma60) + "（MA60）至 " + nf(highCreek) + "（溪流）再减至底仓；收盘跌破 " + nf(lowIce) + "（冰线）清仓。");
+    st1.push("② 空仓者：现价不追。等 " + nf(spring || lowIce) + " 一带缩量二次测试 + 次日放量阳线收回（三高＋量增）再试 10%~15% 仓位，" +
+      "止损 " + nf((num(lowIce) !== null ? lowIce * 0.99 : null)) + "，目标 " + nf(lpsy.price) + "、" + nf(ma60) + "。");
+    st1.push("③ 翻多条件：放量收盘站上 " + nf(highCreek) + "（溪流）并回踩不破（LPS），否则维持派发／震荡定性。");
+    st1.push("④ 破位处理：放量收盘跌破 " + nf(lowIce) + " → 目标 " + nf(arr(dec.targets)[1] && obj(arr(dec.targets)[1]).price) + "，不接飞刀。");
+    st1.push("⑤ 风控：单笔风险 ≤ 总资金 1%，试仓仓位 ≤ 20%；大盘（上证）跌破其冰线时暂停所有试仓。");
+    st1.forEach(function (s) { h.push('<div class="miniNote" style="margin-top:4px">' + esc(s) + "</div>"); });
+    if (arr(dec.invalidations).length) {
+      h.push('<div class="miniNote" style="margin-top:4px">失效条件：' + esc(arr(dec.invalidations).join("；")) + "</div>");
+    }
+    if (str(dec.crisis)) h.push('<div class="miniNote">危机管理：' + esc(str(dec.crisis)) + "</div>");
+
+    /* ---------- 七、基本面与风险提示 ---------- */
+    h.push('<div class="blockTitle" style="margin-top:10px">七、基本面与风险提示</div>');
+    var finRows = [];
+    finRows.push(rpTd("报告期", { dim: true }) + rpTd(esc(str(fin.report_date)) + " " + esc(str(fin.report_type))));
+    finRows.push(rpTd("盈利质量", { dim: true }) + rpTd("ROE " + (num(fin.roe) === null ? "--" : nf(fin.roe) + "%") +
+      "　·　净利率 " + (num(fin.net_margin) === null ? "--" : nf(fin.net_margin) + "%") +
+      "　·　资产负债率 " + (num(fin.debt_ratio) === null ? "--" : nf(fin.debt_ratio) + "%")));
+    finRows.push(rpTd("营收 / 净利润", { dim: true }) + rpTd(money(fin.revenue) + "（同比 " + pct(fin.revenue_yoy) + "）　·　" +
+      money(fin.net_profit) + "（同比 " + pct(fin.net_profit_yoy) + "）"));
+    finRows.push(rpTd("每股 / 分红", { dim: true }) + rpTd("EPS " + nf(fin.eps) + "　·　每股净资产 " + nf(fin.bps) +
+      "　·　股息率 " + (num(fin.dividend_yield) === null ? "--" : nf(fin.dividend_yield) + "%") +
+      "　·　" + esc(str(fin.dividend_plan))));
+    h.push(rpTbl(finRows));
+    var warns = arr(dec.warnings);
+    if (warns.length) {
+      h.push('<div class="blockTitle" style="margin-top:8px">风险提示</div>');
+      h.push('<ul class="list warn">' + warns.map(function (s) { return "<li>" + esc(str(s)) + "</li>"; }).join("") + "</ul>");
+    }
+    h.push('<div class="miniNote" style="margin-top:6px">数据：' + nf(m.bars, 0) + " 根K线（" + esc(ymd(m.start_date)) + " ~ " +
+      esc(ymd(m.end_date)) + "），" + esc(str(m.adjust)) + "，来源 " + esc(str(m.source)) + "，更新 " + esc(str(m.updated)) + "。</div>");
+
+    out.innerHTML = h.join("");
+    loadRpLines(d);
+  }
+
+  /* 周/月/年线的关键线（供给线/需求线/区间上下沿）异步补齐 */
+  function loadRpLines(d) {
+    var code = str(obj(d.meta).code);
+    var seq = ++rpSeq;
+    state.rpLines = {};
+    ["week", "month", "year"].forEach(function (p) {
+      fetch("/api/kline?code=" + encodeURIComponent(code) + "&period=" + p, { headers: { "Accept": "application/json" } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (seq !== rpSeq) return;
+          if (j && j.ok) { state.rpLines[p] = j; }
+          else { state.rpLines[p] = { ok: false, error: str(obj(j).error) || "接口未返回数据" }; }
+          renderRpLines();
+        })
+        .catch(function () {
+          if (seq !== rpSeq) return;
+          state.rpLines[p] = { ok: false, error: "请求失败 · 后端或数据源不可用" };
+          renderRpLines();
+        });
+    });
+  }
+  function renderRpLines() {
+    var box = $("rpLinesBox");
+    if (!box) return;
+    var h = [];
+    ["week", "month", "year"].forEach(function (p) {
+      var j = state.rpLines[p];
+      if (!j) { h.push('<div class="miniNote">' + RP_PERIOD_CN[p] + "：加载中…</div>"); return; }
+      if (j.ok === false) {
+        h.push('<div class="miniNote">' + RP_PERIOD_CN[p] + "：未获取到关键线（" + esc(str(j.error) || "无数据") + "）</div>");
+        return;
+      }
+      var r = obj(j.range), ds = arr(j.dates), tls = arr(j.trend_lines);
+      var sup = null, dem = null;
+      tls.forEach(function (t) { if (str(obj(t).kind) === "supply") sup = obj(t); if (str(obj(t).kind) === "demand") dem = obj(t); });
+      var txt = RP_PERIOD_CN[p] + "：" + nf(j.count, 0) + " 根（" + ymd(ds[0]) + " ~ " + ymd(ds[ds.length - 1]) + "）";
+      if (num(r.high) > 0 && num(r.low) > 0) txt += "；箱体 " + nf(r.high) + " ~ " + nf(r.low) + (r.valid === true ? "（强区间）" : "（参考区间）");
+      if (sup) txt += "；供给线 " + nf(sup.a_price) + "(" + ymd(sup.a_date) + ") → " + nf(sup.b_price) + "(" + ymd(sup.b_date) + ")";
+      if (dem) txt += "；需求线 " + nf(dem.a_price) + "(" + ymd(dem.a_date) + ") → " + nf(dem.b_price) + "(" + ymd(dem.b_date) + ")";
+      if (!sup && !dem) txt += "；未识别到供需趋势线";
+      if (str(j.note)) txt += "；" + str(j.note);
+      h.push('<div class="miniNote" style="margin-top:3px">' + esc(txt) + "</div>");
+    });
+    box.innerHTML = h.join("");
+  }
+
+  /* ==================== 汇总渲染 ==================== */
+  function renderAll() {
+    state.view = { start: 0, end: null };   /* 新数据/重新分析时重置视窗 */
+    state.hoverIndex = null;
+    state.hoverLabel = null;
+    /* 换股/刷新后回到日线视图，并丢弃旧股票的周期K线缓存 */
+    state.period = "day";
+    state.kline = null;
+    state.periodData = {};
+    state.periodSeq++;
+    setPeriodTabs("day");
+    var d = state.data;
+    renderHead(d);
+    /* 个股分析：只保留「威科夫复盘报告（新华保险范式）」+ K线图，其余旧卡片已删除 */
+    state.rpLines = {};
+    rpSeq++;
+    renderStockReport(d);
+    var c = chartData(d);
+    /* K线数量很大时初始只显示最近500根，其余通过滚轮缩小/平移查看 */
+    if (c && c.n > 500) { state.view = { start: c.n - 500, end: null }; }
+    updateChartSub();
+    drawChart();
+  }
+
+  /* ==================== 数据获取 ==================== */
+  function backendDown(err) {
+    var isFile = (location.protocol === "file:");
+    state.demo = true;
+    state.data = demoPayload(state.code, state.bars);
+    state.hoverIndex = null;
+    renderAll();
+    var msg;
+    if (isFile) {
+      msg = "当前为 file:// 本地打开，无法访问 /api/analyze（浏览器同源策略）。已显示内置演示数据作界面预览。请通过本地服务访问：http://127.0.0.1:8765/";
+    } else {
+      msg = "无法连接后端接口 " + API + "（" + (err || "网络错误") + "）。已显示内置演示数据作界面预览。请启动本地 Python 服务后点击「刷新分析」重试。";
+    }
+    setStatus("warn", msg);
+  }
+
+  function load() {
+    var code = (els.codeInput && els.codeInput.value ? els.codeInput.value : "").trim();
+    if (!code) {
+      showError("请输入股票代码后再查询。");
+      setStatus("warn", "输入为空：请填写 6 位股票代码，例如 600519。");
+      if (els.codeInput) els.codeInput.focus();
+      clearAll("已清空显示：输入为空。");
+      return;
+    }
+    if (!/^[0-9]{6}$/.test(code) && !/^[A-Za-z]{2}[0-9]{6}$/.test(code)) {
+      setStatus("warn", "输入「" + code + "」不是标准代码格式，将按名称/拼音搜索匹配的A股…");
+    }
+    state.code = code;
+    state.bars = parseInt(els.barsSelect ? els.barsSelect.value : "500", 10) || 500;
+    showError("");
+    var seq = ++state.reqSeq;
+    var t0 = Date.now();
+    state.loading = true;
+    if (els.refreshBtn) els.refreshBtn.disabled = true;
+    setStatus("loading", "正在请求 /api/analyze?code=" + code + "&bars=" + state.bars + " …");
+    var url = API + "?code=" + encodeURIComponent(code) + "&bars=" + state.bars;
+    fetch(url, { headers: { "Accept": "application/json" } })
+      .then(function (res) {
+        if (seq !== state.reqSeq) return null;
+        return res.text().then(function (txt) {
+          var data = null;
+          try { data = JSON.parse(txt); } catch (e) { data = null; }
+          if (!res.ok) {
+            var em = data && data.error ? data.error : ("HTTP " + res.status + " " + (res.statusText || ""));
+            throw new Error(em || ("HTTP " + res.status));
+          }
+          if (!data) throw new Error("返回内容不是合法 JSON（前 120 字：" + txt.slice(0, 120) + "）");
+          return data;
+        });
+      })
+      .then(function (data) {
+        if (data === null || seq !== state.reqSeq) return;
+        state.demo = false;
+        state.lastMs = Date.now() - t0;
+        if (data.ok === false) {
+          state.data = data;
+          state.hoverIndex = null;
+          renderAll();
+          showError("分析失败（ok=false）：" + (data.error || "后端未返回具体错误信息"));
+          setStatus("err", "接口返回失败，用时 " + state.lastMs + " ms。");
+          return;
+        }
+        state.data = data;
+        state.hoverIndex = null;
+        renderAll();
+        /* W-M 与顶部个股保持同步：顶部改代码并分析后，自动按解析后的代码重跑 */
+        runWm(str(obj(data.meta).code) || state.code);
+        var warn = [];
+        if (!obj(data.kline).dates || !arr(obj(data.kline).dates).length) warn.push("K线数据为空");
+        if (!obj(data.meta).name) warn.push("缺少股票名称");
+        var st = "加载完成：用时 " + state.lastMs + " ms";
+        if (warn.length) { setStatus("warn", st + "（注意：" + warn.join("、") + "）"); }
+        else { setStatus("", st + "　数据时间 " + str(obj(data.meta).updated || "--")); }
+      })
+      .catch(function (err) {
+        if (seq !== state.reqSeq) return;
+        showError("请求失败：" + (err && err.message ? err.message : String(err)));
+        backendDown(err && err.message ? err.message : String(err));
+      })
+      .then(function () {
+        if (seq === state.reqSeq) {
+          state.loading = false;
+          if (els.refreshBtn) els.refreshBtn.disabled = false;
+        }
+      });
+  }
+
+  /* ==================== 内置演示数据（无后端/离线时预览界面） ==================== */
+  function demoPayload(code, bars) {
+    bars = Math.max(60, Math.min(500, bars || 500));
+    var seed = 20261009;
+    function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
+    var dates = [], open = [], high = [], low = [], close = [], volume = [];
+    var p = 1180, i;
+    var startMs = Date.UTC(2025, 6, 1);
+    var day = 0;
+    function nextDate() {
+      while (true) {
+        var d = new Date(startMs + day * 86400000);
+        day++;
+        var wd = d.getUTCDay();
+        if (wd !== 0 && wd !== 6) return d.toISOString().slice(0, 10);
+      }
+    }
+    for (i = 0; i < bars; i++) {
+      dates.push(nextDate());
+      var drift = i < bars * 0.55 ? 0.12 : (i < bars * 0.9 ? -0.05 : 0.35);
+      var vol = 0.012 + rnd() * 0.012;
+      var o = p * (1 + (rnd() - 0.5) * 0.006);
+      var c2 = p * (1 + (rnd() - 0.5) * vol + drift / 100);
+      var h = Math.max(o, c2) * (1 + rnd() * 0.008);
+      var l = Math.min(o, c2) * (1 - rnd() * 0.008);
+      var v = 8000 + rnd() * 12000 + Math.abs(c2 - o) / Math.max(0.01, o) * 400000;
+      if (i === Math.round(bars * 0.8)) { l = Math.min(l, p * 0.965); c2 = p * 1.012; v = v * 2.0; }
+      if (i === Math.round(bars * 0.86)) { h = Math.max(h, p * 1.035); c2 = p * 1.03; v = v * 1.8; }
+      open.push(+o.toFixed(2)); high.push(+h.toFixed(2)); low.push(+l.toFixed(2));
+      close.push(+c2.toFixed(2)); volume.push(Math.round(v));
+      p = c2;
+    }
+    function maArr(a, n) {
+      var out = [];
+      for (var k = 0; k < a.length; k++) {
+        if (k < n - 1) { out.push(null); continue; }
+        var s = 0;
+        for (var j = k - n + 1; j <= k; j++) s += a[j];
+        out.push(+(s / n).toFixed(2));
+      }
+      return out;
+    }
+    var last = close[close.length - 1], prev = close[close.length - 2];
+    var rgLow = +Math.min.apply(null, low.slice(Math.round(bars * 0.55))).toFixed(2);
+    var rgHigh = +Math.max.apply(null, high.slice(Math.round(bars * 0.55))).toFixed(2);
+    var evIdx = Math.round(bars * 0.8), sosIdx = Math.round(bars * 0.86);
+    return {
+      ok: true, error: "",
+      meta: {
+        code: code || "600519", name: "演示数据（无后端）", market: /^6/.test(code) ? "SH" : "SZ",
+        updated: new Date().toISOString().slice(0, 19).replace("T", " "),
+        price: last, prev_close: prev, open: open[open.length - 1], high: high[high.length - 1], low: low[low.length - 1],
+        change: +(last - prev).toFixed(2), change_pct: +((last - prev) / prev * 100).toFixed(2),
+        amplitude: +((high[high.length - 1] - low[low.length - 1]) / prev * 100).toFixed(2),
+        volume: volume[volume.length - 1], amount: volume[volume.length - 1] * last * 100,
+        turnover: 0.28, pe: 17.73, pb: 6.28,
+        total_cap: last * 1.25e9, float_cap: last * 1.1e9,
+        limit_up: +(prev * 1.1).toFixed(2), limit_down: +(prev * 0.9).toFixed(2),
+        bars: bars, start_date: dates[0], end_date: dates[bars - 1],
+        adjust: "前复权", source: "内置演示数据（离线预览）",
+        financials: {
+          report_date: "2026-06-30", report_type: "中报", roe: 12.4, net_margin: 21.5, debt_ratio: 38.2,
+          revenue: 1.85e9, revenue_yoy: 15.3, net_profit: 3.2e8, net_profit_yoy: 18.6,
+          eps: 2.05, bps: 16.8, dividend_yield: 2.4, dividend_plan: "每10股派6.00元（演示）"
+        }
+      },
+      wyckoff: {
+        phase: "accumulation", phase_cn: "吸筹（Accumulation）", sub_phase: "Phase C", confidence: 72,
+        summary: "价格在区间内反复震荡，出现 Spring 诱空后快速收回，供给枯竭，处于吸筹后期。",
+        trend: { daily: "up", weekly: "sideways", intraday: "up" },
+        range: { high: rgHigh, low: rgLow, mid: +((rgHigh + rgLow) / 2).toFixed(2),
+          width_pct: +((rgHigh - rgLow) / rgLow * 100).toFixed(2), bars: bars - Math.round(bars * 0.55),
+          start: dates[Math.round(bars * 0.55)], end: dates[bars - 1], valid: true },
+        cause_effect: { text: "区间横盘蓄势，量度目标上看 " + (rgHigh + (rgHigh - rgLow)).toFixed(2), target: +(rgHigh + (rgHigh - rgLow)).toFixed(2) },
+        levels: [{ type: "support", price: rgLow, label: "区间下沿/冰线(Ice)", strength: 85,
+          distance_pct: +((rgLow - last) / last * 100).toFixed(2) }],
+        events: [
+          { date: dates[evIdx], type: "Spring", type_cn: "弹簧效应(Spring)", price: low[evIdx], volume_ratio: 2.0, score: 80, bullish: true, desc: "跌破区间下沿后迅速收回，量能放大，属诱空吸筹（演示）" },
+          { date: dates[sosIdx], type: "SOS", type_cn: "强势信号(SOS)", price: close[sosIdx], volume_ratio: 1.8, score: 76, bullish: true, desc: "放量长阳跳离区间中部，需求明显占优（演示）" }
+        ],
+        vsa: [{ date: dates[bars - 3], type: "NoSupply", type_cn: "无供给", volume_ratio: 0.6, bullish: true, desc: "缩量小阴回踩，抛压枯竭（演示）" }],
+        volume_analysis: { text: "上涨量大于下跌量，需求占优（演示）", up_down_vol_ratio: 1.25 },
+        effort_result: { text: "放量上涨且收在高位，努力与结果一致（演示）" },
+        composite: { text: "主力行为推断：区间内吸筹，Spring 洗盘后控盘度提升（演示）" },
+        market_context: {
+          text: "上证指数 3,200.00（+0.35%）；创业板指 2,400.00（+0.52%）。上证指数趋势：上升（演示）",
+          indices: [{ name: "上证指数", price: 3200.0, change_pct: 0.35 }, { name: "创业板指", price: 2400.0, change_pct: 0.52 }],
+          trend: { dir: "up", text: "站上 MA20 与 MA60，短期向上（演示）" },
+          phase: { phase_cn: "吸筹（Accumulation）", sub_phase_cn: "Phase C" },
+          wyckoff: { range: { low: +(rgLow * 0.92).toFixed(2), high: +(rgHigh * 1.02).toFixed(2) } },
+          cyb_trend: { dir: "up", text: "创业板指同步走强（演示）" },
+          cyb_phase: { phase_cn: "吸筹（Accumulation）", sub_phase_cn: "Phase B" }
+        },
+        background: { interaction: "个股与大盘同向，指数未破冰线，可按计划分批建仓（演示）" },
+        score: { bull: 65, bear: 20, neutral: 15 },
+        long_trend: { dir: "up", pos250: 0.72, text: "长期上升趋势，现价处于近250根区间 72% 分位（演示）" },
+        nine_tests: { buy_passed: 6, sell_passed: 2 },
+        counts: { Spring: 1, SOS: 1 }
+      },
+      decision: {
+        action: "buy", action_cn: "买入（分批建仓）", confidence: 68, urgency: "medium", urgency_cn: "可等待回踩",
+        entry: { zone: [+(last * 0.985).toFixed(2), +(last * 1.005).toFixed(2)], ideal: +(last * 0.99).toFixed(2), basis: "回踩区间中部（演示）" },
+        stop: { price: +(rgLow * 0.99).toFixed(2), pct: +((rgLow * 0.99 - last) / last * 100).toFixed(2), basis: "跌破区间下沿/Spring低点" },
+        targets: [
+          { price: +(rgHigh).toFixed(2), pct: +((rgHigh - last) / last * 100).toFixed(2), basis: "区间高度量度目标" },
+          { price: +(rgHigh * 1.08).toFixed(2), pct: +((rgHigh * 1.08 - last) / last * 100).toFixed(2), basis: "前高压力" }
+        ],
+        risk_reward: 2.1,
+        position: { suggest_pct: 30, text: "首次建仓3成，突破区间上沿加仓至6成" },
+        reasons: ["处于吸筹区间末端，Spring 已确认", "缩量回踩显示供给枯竭", "均线多头排列且站上 MA20"],
+        warnings: ["若大盘系统性走弱，区间可能被向下突破", "关注放量滞涨的努力与结果背离"],
+        invalidations: ["跌破 " + (rgLow * 0.99).toFixed(2) + " 视为判断失效"],
+        checklist: [{ item: "处于吸筹区间", pass: true }, { item: "出现Spring/测试", pass: true }, { item: "量价配合", pass: true }, { item: "突破区间上沿", pass: false }],
+        summary: "吸筹后期、Spring 已现，回踩区间中部可分批建仓，跌破区间下沿止损。"
+      },
+      kline: {
+        dates: dates, open: open, high: high, low: low, close: close, volume: volume,
+        ma5: maArr(close, 5), ma10: maArr(close, 10), ma20: maArr(close, 20), ma60: maArr(close, 60),
+        events: [
+          { index: evIdx, date: dates[evIdx], type_cn: "Spring", price: low[evIdx], bullish: true },
+          { index: sosIdx, date: dates[sosIdx], type_cn: "SOS", price: close[sosIdx], bullish: true }
+        ],
+        range: { high: rgHigh, low: rgLow, start_index: Math.round(bars * 0.55), end_index: bars - 1 },
+        key_candles: [{
+          index: evIdx, num: 1, date: dates[evIdx], vr: 2.0,
+          title: "放量长下影收回（Spring 诱空）",
+          text: "跌破区间下沿后放量收回并收在高位——供应被需求吸收，属诱空吸筹（演示）",
+          tone: "up"
+        }],
+        candle_patterns: [{
+          index: bars - 1, indexes: [bars - 2, bars - 1], date: dates[bars - 1],
+          label: "B.ENG", name_cn: "阳包阴（看涨）", bullish: true,
+          note: "需求吞没前一根阴线实体，短线转强（演示）"
+        }],
+        trends: [{
+          kind: "up", label: "TL-UP", name_cn: "上升趋势段",
+          start_index: Math.round(bars * 0.9), end_index: bars - 1,
+          start_date: dates[Math.round(bars * 0.9)], end_date: dates[bars - 1],
+          chg_pct: 12.5, note: "低点逐级抬高，沿线回踩缩量可顺势（演示）"
+        }]
+      },
+      report_text: [
+        "【演示报告】当前未连接本地 Python 后端服务，以下为界面预览用的示例文本。",
+        "",
+        "一、行情概览",
+        "  代码：" + (code || "600519") + "　最新价：" + last.toFixed(2) + "　涨跌幅：" + ((last - prev) / prev * 100).toFixed(2) + "%",
+        "  区间：" + rgLow.toFixed(2) + " ~ " + rgHigh.toFixed(2),
+        "",
+        "二、威科夫判断",
+        "  阶段：吸筹（Accumulation）　子阶段：Phase C　置信度：72%",
+        "  依据：区间震荡 + Spring 诱空 + 缩量回踩（No Supply）。",
+        "",
+        "三、交易决策",
+        "  方向：买入（分批建仓）　理想买点：" + (last * 0.99).toFixed(2),
+        "  止损：" + (rgLow * 0.99).toFixed(2) + "　目标：" + rgHigh.toFixed(2) + " / " + (rgHigh * 1.08).toFixed(2),
+        "  建议仓位：首次 3 成，突破区间上沿加至 6 成。",
+        "",
+        "四、操作提示",
+        "  1) 等待回踩区间中部确认支撑；2) 放量突破区间上沿可加仓；3) 跌破区间下沿立即失效离场。",
+        "",
+        "说明：启动本地服务后访问 http://127.0.0.1:8765/ 即可看到真实分析结果。"
+      ].join("\n"),
+      disclaimer: "本工具仅为技术分析学习参考，不构成投资建议。"
+    };
+  }
+
+  /* ==================== 输入联想（名称/代码） ==================== */
+  var sgTimer = null, sgSeq = 0;
+  function hideSuggest() {
+    if (els.suggest) { els.suggest.classList.remove("show"); els.suggest.innerHTML = ""; }
+  }
+  function renderSuggest(items) {
+    var box = els.suggest; if (!box) return;
+    if (!items || !items.length) {
+      box.innerHTML = '<div class="sgEmpty">未找到匹配的A股</div>';
+      box.classList.add("show");
+      return;
+    }
+    var esc = function (s) { return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+    var html = items.map(function (it) {
+      var name = esc(it.name), code = esc(it.code), mkt = esc(it.market);
+      return '<div class="sgItem" data-code="' + code + '" data-name="' + name + '">'
+        + '<span class="sgName">' + name + '</span>'
+        + '<span class="sgCode">' + code + ' <b class="sgMkt">' + mkt + '</b></span></div>';
+    }).join("");
+    box.innerHTML = html;
+    box.classList.add("show");
+    var nodes = box.querySelectorAll(".sgItem");
+    for (var i = 0; i < nodes.length; i++) {
+      (function (node) {
+        node.addEventListener("click", function () {
+          var c = node.getAttribute("data-code");
+          if (c && els.codeInput) els.codeInput.value = c;
+          hideSuggest();
+          load();
+        });
+      })(nodes[i]);
+    }
+  }
+  function fetchSuggest(q) {
+    var seq = ++sgSeq;
+    fetch("/api/search?q=" + encodeURIComponent(q), { headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (seq === sgSeq) renderSuggest((j && j.items) ? j.items : []); })
+      .catch(function () { hideSuggest(); });
+  }
+  function setupSuggest() {
+    var inp = els.codeInput, box = els.suggest;
+    if (!inp || !box) return;
+    inp.addEventListener("input", function () {
+      var q = (inp.value || "").trim();
+      clearTimeout(sgTimer);
+      if (q.length < 1) { hideSuggest(); return; }
+      sgTimer = setTimeout(function () { fetchSuggest(q); }, 200);
+    });
+    document.addEventListener("mousedown", function (e) {
+      if (box.contains(e.target) || e.target === inp) return;
+      hideSuggest();
+    });
+  }
+
+
+  /* ==================== v32 W-M 选股模型（威科夫-均线共振自上而下） ==================== */
+  var wmSeq = 0;
+  var wmPeriod = "day";
+  var wmLastQuery = "";
+  function wmTag(ok, txt) {
+    var c = ok === true ? "ok" : ok === false ? "no" : "mid";
+    return '<span class="wmTag ' + c + '">' + esc(str(txt)) + "</span>";
+  }
+  function wmList(items, kind) {
+    var a = arr(items).filter(function (x) { return str(x).trim(); });
+    if (!a.length) return "";
+    return '<ul class="list ' + (kind || "") + '">' +
+      a.map(function (x) { return "<li>" + esc(str(x)) + "</li>"; }).join("") + "</ul>";
+  }
+  function wmVerdictClass(v) {
+    return v === "execute" ? "buy" : (v === "eliminate" ? "sell" : "hold");
+  }
+  /* 大盘K线节点引用：摘出 DOM 后 getElementById 取不到，必须用变量持有，否则节点永久丢失 */
+  var wmMktNode = null;
+  function wmTakeCharts() {
+    /* 先摘出大盘K线节点，避免 innerHTML 覆盖时被销毁（保留画布与交互绑定） */
+    var node = $("wmMktCharts") || wmMktNode;
+    if (node && node.parentNode) node.parentNode.removeChild(node);
+    if (node) wmMktNode = node;
+    return node;
+  }
+  function wmPlaceCharts() {
+    var node = wmMktNode || $("wmMktCharts");
+    if (!node) return;
+    wmMktNode = node;
+    var host = $("wmMktSlot") || $("wmMktFallback");
+    if (host) host.appendChild(node);
+    /* 节点移动后按新容器宽度重绘 */
+    [["sh000001", "mktChart"], ["sz399006", "mkt2Chart"]].forEach(function (pair) {
+      var d = idxCurData[pair[0]], cv = $(pair[1]);
+      if (d && cv) drawIndexChart(cv, d, pair[0]);
+    });
+  }
+
+  function renderWm(j) {
+    var out = $("wmOut");
+    if (!out) return;
+    wmTakeCharts();
+    if (!j || j.ok === false) {
+      out.innerHTML = '<div class="empty">W-M 分析失败：' + esc(str(j && j.error) || "未知错误") + "</div>";
+      wmPlaceCharts();
+      return;
+    }
+    function kvItem(k, v, ok) {
+      return '<div class="kv"><div class="k">' + esc(k) + '</div><div class="v">' +
+        (ok === undefined ? esc(str(v)) : wmTag(ok, v)) + "</div></div>";
+    }
+    var m = obj(j.meta), macro = obj(j.macro), sc = obj(j.screen), w = obj(j.wyckoff),
+        pl = obj(j.plan), sm = obj(j.summary);
+    var idxs = arr(macro.indices), sec = obj(macro.sector), top = arr(sec.top);
+    var conds = arr(sc.conditions), ut = obj(w.ut), rg = obj(w.range), buy = obj(w.buy),
+        st = obj(pl.stop), tp = obj(pl.take_profit), pos = obj(sm.position), lt = obj(w.long_trend);
+    var h = [];
+    var cp = num(m.change_pct);
+
+    /* ---- 结论头 ---- */
+    h.push('<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">');
+    h.push('<span class="actLabel ' + wmVerdictClass(str(sm.verdict)) + '">' + esc(str(sm.verdict_cn) || "--") + "</span>");
+    h.push('<span style="font-size:13px;">' + esc(str(m.name) || "--") +
+      ' <span class="mono" style="color:var(--dim);font-size:12px">' + esc(str(m.code) || "") +
+      (str(m.market) ? " · " + esc(str(m.market)) : "") + "</span></span>");
+    h.push('<span class="mono ' + cls(cp) + '" style="font-size:16px;font-weight:700">' +
+      esc(px(m.price)) + " " + esc(pct(cp)) + "</span>");
+    h.push('<span class="wmTag">评分 ' + esc(str(sm.score) || "--") + "</span>");
+    if (m.period_cn) h.push('<span class="wmTag">' + esc(str(m.period_cn)) + "</span>");
+    if (m.industry) h.push('<span class="wmTag">行业 ' + esc(str(m.industry)) + "</span>");
+    h.push("</div>");
+    h.push('<div class="summaryBox" style="border-left-color:var(--warn)">' + esc(str(sm.text)) + "</div>");
+    h.push(wmList(m.warnings, "warn"));
+
+    /* ---- 第一层：宏观环境 ---- */
+    h.push('<div class="wmLayer"><h3>第一层 · 宏观环境（定基调与仓位）' +
+      wmTag(macro.zone === "safe" ? true : macro.zone === "range" ? null : false,
+        str(macro.zone_cn) || "--") + "</h3>");
+    h.push('<div class="kvGrid">' +
+      kvItem("大盘总仓上限", str(macro.position_cap) || "--") +
+      '<div class="kv" style="grid-column:1/-1"><div class="k">仓位基调</div>' +
+      '<div class="v" style="font-size:12.5px;font-weight:500;line-height:1.6">' + esc(str(macro.advice)) + "</div></div>" +
+      "</div>");
+    if (idxs.length) {
+      h.push('<table class="tbl"><thead><tr><th>指数</th><th>现价</th><th>涨跌幅</th><th>MA20</th>' +
+        "<th>MA60</th><th>20日线</th><th>分区</th></tr></thead><tbody>");
+      idxs.forEach(function (r) {
+        var z = r.zone === "safe" ? wmTag(true, str(r.zone_cn))
+          : r.zone === "range" ? wmTag(null, str(r.zone_cn)) : wmTag(false, str(r.zone_cn));
+        h.push("<tr><td>" + esc(str(r.name)) + "</td><td class='num mono'>" + esc(px(r.price)) +
+          "</td><td class='num mono " + cls(num(r.change_pct)) + "'>" + esc(pct(r.change_pct)) +
+          "</td><td class='num mono'>" + esc(nf(r.ma20)) + "</td><td class='num mono'>" + esc(nf(r.ma60)) +
+          "</td><td>" + (r.up20 ? wmTag(true, "拐头向上") : wmTag(false, "未向上")) +
+          "</td><td>" + z + "</td></tr>");
+      });
+      h.push("</tbody></table>");
+    }
+    /* 大盘K线并入第一层（节点由 wmMktCharts 移入，保留画布与交互状态） */
+    h.push('<div id="wmMktSlot"></div>');
+    h.push('<div class="blockTitle">主线板块共振 · 今日行业涨幅榜前 10' +
+      (sec.source ? "（" + esc(str(sec.source)) + "）" : "") + "</div>");
+    if (top.length) {
+      h.push('<div class="wmChips">' + top.map(function (t, i) {
+        var hit = num(sec.rank) === i + 1;
+        var h7 = num(t.hit7);
+        return '<span class="wmChip' + (hit ? " hit" : "") + '">' + (i + 1) + ". " + esc(str(t.name)) +
+          " <b>" + esc(pct(t.pct)) + "</b>" +
+          (t.net === null || t.net === undefined ? "" : " · 主力 " + esc(nf(t.net, 2)) + "亿") +
+          ' · <span class="mono" title="' +
+          esc("近 " + nf(obj(sec.hist).days, 0) + " 个交易日进入涨幅榜前 10 的次数") +
+          '" style="' + (h7 !== null && h7 >= 3 ? "color:var(--warn);font-weight:700" : "color:var(--dim)") +
+          '">近7日 ' + (h7 === null ? "—" : nf(h7, 0) + " 次前10") + "</span></span>";
+      }).join("") + "</div>");
+    }
+    if (sec.hist_note) h.push('<div class="miniNote" style="opacity:.75">' + esc(str(sec.hist_note)) + "</div>");
+    h.push('<div class="miniNote">' + wmTag(sec.resonant ? true : false, sec.resonant ? "板块共振" : "无共振") +
+      " " + esc(str(sec.text)) + "</div>");
+    h.push("</div>");
+
+    /* ---- 第二层：量化海选 ---- */
+    h.push('<div class="wmLayer"><h3>第二层 · 量化海选（机器代劳）' +
+      wmTag(!!sc.pass, sc.pass ? "海选通过" : "海选未通过") + "</h3>");
+    h.push('<div class="kvGrid">' +
+      kvItem("均线形态", sc.ma_pass ? "通过" : "未通过", !!sc.ma_pass) +
+      kvItem("量能基础", sc.vol_pass ? "通过" : "未通过", !!sc.vol_pass) +
+      kvItem("流动性", sc.liq_pass ? "通过" : "未通过", !!sc.liq_pass) +
+      kvItem("MA5 / MA10", nf(obj(sc.ma).ma5) + " / " + nf(obj(sc.ma).ma10)) +
+      kvItem("MA20 / MA60", nf(obj(sc.ma).ma20) + " / " + nf(obj(sc.ma).ma60)) +
+      kvItem("成交额 / 总市值", money(obj(sc.liquidity).amount) + " / " + money(obj(sc.liquidity).total_cap)) +
+      "</div>");
+    if (conds.length) {
+      h.push('<table class="tbl"><thead><tr><th>条件</th><th>判定</th><th>明细</th></tr></thead><tbody>');
+      conds.forEach(function (c) {
+        var state = c.state === "pass" ? wmTag(true, "通过")
+          : c.state === "info" ? wmTag(null, "参考")
+          : c.counted === false ? wmTag(null, "未通过（仅参考）") : wmTag(false, "未通过");
+        h.push("<tr><td>" + esc(str(c.label)) + "</td><td>" + state +
+          "</td><td style='color:var(--dim)'>" + esc(str(c.detail)) + "</td></tr>");
+      });
+      h.push("</tbody></table>");
+    }
+    h.push("</div>");
+
+    /* ---- 第三层：威科夫精选 ---- */
+    var dirCn = str(lt.dir) === "up" ? "向上" : str(lt.dir) === "down" ? "向下" : "震荡";
+    h.push('<div class="wmLayer"><h3>第三层 · 威科夫精选（三步杀）' +
+      wmTag(!ut.risk, ut.risk ? "UT 风险" : "排雷通过") + "</h3>");
+    h.push('<div class="miniNote">阶段：<b style="color:var(--text)">' + esc(str(w.stage_cn) || "--") + "</b>" +
+      (w.sub_phase ? " · " + esc(str(w.sub_phase)) : "") +
+      " · 置信度 " + esc(str(w.confidence) || "--") +
+      " · 长期趋势 " + esc(dirCn) + (lt.text ? "（" + esc(str(lt.text)) + "）" : "") + "</div>");
+    h.push('<div class="wmStep"><div class="st">① 排雷：是否 UT（上冲回落）' +
+      wmTag(!ut.risk, ut.pass ? "通过" : "淘汰") + "</div>" + wmList(ut.reasons) + "</div>");
+    h.push('<div class="wmStep"><div class="st">② 定性：左侧有没有吸筹区间' +
+      wmTag(!!rg.ok, rg.ok ? "区间成立" : "无区间，放弃") +
+      (rg.ok ? wmTag(rg.healthy ? true : null, rg.healthy ? "量价健康" : "量价一般") : "") +
+      "</div>" + wmList(rg.details) + "</div>");
+    h.push('<div class="wmStep"><div class="st">③ 定买点：现在是哪个威科夫买点' +
+      wmTag(!!buy.ready, buy.ready ? "买点就绪" : "待确认") + "</div>" +
+      '<div class="wmLbl">' + esc(str(buy.label)) +
+      (buy.price ? '　计划价 <b class="mono">' + esc(px(buy.price)) + "</b>" : "") + "</div>" +
+      wmList(buy.reasons) + "</div>");
+    var evs = arr(w.events);
+    if (evs.length) {
+      h.push('<div class="blockTitle">近期威科夫事件（最新 8 条）</div><div class="wmChips">' +
+        evs.map(function (e) {
+          return '<span class="wmChip">' + esc(str(e.date)) + " " + esc(str(e.type_cn)) +
+            " <b>" + esc(px(e.price)) + "</b></span>";
+        }).join("") + "</div>");
+    }
+    h.push("</div>");
+
+    /* ---- 第四层：交易执行 ---- */
+    var vd = str(sm.verdict);
+    h.push('<div class="wmLayer"><h3>第四层 · 交易执行（扣动扳机）' +
+      wmTag(vd === "execute" ? true : vd === "eliminate" ? false : null,
+        vd === "execute" ? "可执行" : vd === "eliminate" ? "放弃" : "等待") + "</h3>");
+    var riskTxt = (pl.risk_pct === null || pl.risk_pct === undefined ? "--" : nf(pl.risk_pct, 2) + "%") +
+      " / " + (pl.rr === null || pl.rr === undefined ? "--" : nf(pl.rr, 2));
+    h.push('<div class="kvGrid">' +
+      kvItem("计划买点（回踩 MA20）", pl.entry_ref ? px(pl.entry_ref) : "--") +
+      kvItem("买入区间", isArr(pl.buy_zone) && pl.buy_zone.length === 2
+        ? px(pl.buy_zone[0]) + " ~ " + px(pl.buy_zone[1]) : "--") +
+      kvItem("结构止损（硬）", st.price ? px(st.price) : "--") +
+      kvItem("MA20 第一防线", st.ma20 ? px(st.ma20) : "--") +
+      kvItem("单票上限 / 首次建仓", str(pos.single_max_pct) + "% / " + str(pos.first_entry_pct) + "%") +
+      kvItem("风险 / 收益比", riskTxt) +
+      "</div>");
+    h.push('<div class="miniNote">' +
+      "<div><b>买入纪律：</b>" + esc(str(pl.no_chase)) + "</div>" +
+      "<div><b>止损规则：</b>硬止损 " + esc(str(st.basis) || "--") +
+      (st.structure_basis && st.structure_basis !== st.basis ? "（结构位依据：" + esc(str(st.structure_basis)) + "）" : "") +
+      "；均线防线 " + esc(str(st.ma20_rule)) +
+      (st.spring ? "；Spring 低点止损 " + esc(px(st.spring)) : "") + "</div>" +
+      "<div><b>仓位安排：</b>" + esc(str(pos.text)) + "</div>" +
+      "<div><b>移动止盈：</b>" + esc(str(tp.trailing)) + "</div></div>");
+    var tg = arr(tp.targets);
+    if (tg.length) {
+      h.push('<div class="blockTitle">止盈目标</div><table class="tbl"><thead><tr><th>目标价</th>' +
+        "<th>依据</th><th>距计划买点</th></tr></thead><tbody>" +
+        tg.map(function (t) {
+          var base = num(pl.entry_ref), d = base ? (num(t.price) / base - 1) * 100 : null;
+          return "<tr><td class='num mono'>" + esc(px(t.price)) + "</td><td>" + esc(str(t.basis)) +
+            "</td><td class='num mono'>" + esc(d === null ? "--" : pct(d)) + "</td></tr>";
+        }).join("") + "</tbody></table>");
+    }
+    h.push('<div class="blockTitle">离场纪律</div>' + wmList(tp.exit_rules));
+    var dv = obj(pl.divergence);
+    var dvTag = (dv.rsi_div || dv.macd_div) ? wmTag(false, "出现顶背离")
+      : dv.lower_high ? wmTag(false, "高点降低") : wmTag(true, "未触发");
+    h.push('<div class="blockTitle">顶背离 / 趋势转弱监测' + dvTag + "</div>" + wmList(dv.text));
+    h.push("</div>");
+
+    h.push('<div class="miniNote" style="margin-top:10px">数据时间 ' + esc(str(m.updated) || "--") +
+      " · K 线 " + esc(str(m.bars) || "--") + " 根（" + esc(str(m.adjust) || "前复权") + "）" +
+      (m.period_cn ? " · 周期 " + esc(str(m.period_cn)) + "（末根 " + esc(str(m.period_last) || "--") + "）" : "") +
+      " · 计算用时 " + esc(str(m.elapsed) || "--") + " 秒</div>");
+    h.push('<div class="miniNote" style="color:var(--dim2)">宏观层固定日线口径（三大指数趋势与仓位基调）；第二~四层按所选周期K线计算。' +
+      "分钟周期数据源通常仅返回约 320 根K线（2~4 个月），结论以短线节奏为主。</div>");
+    h.push('<div class="miniNote" style="color:var(--dim2)">' + esc(str(j.disclaimer)) + "</div>");
+    out.innerHTML = h.join("");
+    wmPlaceCharts();
+  }
+
+  function wmPeriodCn() {
+    return ({ day: "日线", week: "周线", month: "月线", m60: "60分钟", m30: "30分钟" })[wmPeriod] || "日线";
+  }
+
+  function runWm(qOverride) {
+    /* 个股代码统一取页面顶部输入框（state.code 为兜底，即最近一次分析的个股） */
+    var top = els.codeInput;
+    var q = (qOverride === undefined || qOverride === null)
+      ? (str(top && top.value ? top.value.trim() : "") || str(state.code))
+      : str(qOverride);
+    var out = $("wmOut"), stEl = $("wmStatus"), btn = $("wmRunBtn");
+    if (!q) { if (stEl) stEl.textContent = "请先在页面顶部输入股票代码"; return; }
+    var seq = ++wmSeq;
+    wmLastQuery = q;
+    wmTakeCharts();
+    if (out) out.innerHTML = '<div class="empty">正在分析「' + esc(q) + "」· " + esc(wmPeriodCn()) + "…（首次约 3~10 秒）</div>";
+    wmPlaceCharts();
+    if (stEl) stEl.textContent = "请求 /api/wm（" + wmPeriodCn() + "）…";
+    if (btn) btn.disabled = true;
+    fetch("/api/wm?code=" + encodeURIComponent(q) + "&period=" + encodeURIComponent(wmPeriod),
+      { headers: { "Accept": "application/json" } })
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var data = null;
+          try { data = JSON.parse(txt); } catch (e) { data = null; }
+          if (!data) throw new Error("返回内容不是合法 JSON（前 120 字：" + txt.slice(0, 120) + "）");
+          return data;
+        });
+      })
+      .then(function (j) {
+        if (seq !== wmSeq) return;
+        if (btn) btn.disabled = false;
+        if (j && j.ok === false) {
+          if (out) out.innerHTML = '<div class="empty">W-M 分析失败：' + esc(str(j.error) || "未知错误") + "</div>";
+          if (stEl) stEl.textContent = "失败";
+          return;
+        }
+        renderWm(j);
+        if (stEl) stEl.textContent = "完成（" + str(obj(j.meta).elapsed) + " 秒）";
+      })
+      .catch(function (err) {
+        if (seq !== wmSeq) return;
+        if (btn) btn.disabled = false;
+        if (out) out.innerHTML = '<div class="empty">请求失败：' +
+          esc(str(err && err.message ? err.message : err)) + "（请确认本地服务已启动）</div>";
+        if (stEl) stEl.textContent = "失败";
+      });
+  }
+
+  /* ==================== 事件绑定 / 启动 ==================== */
+  function init() {
+    if (els.codeInput) els.codeInput.value = DEFAULT_CODE;
+    if (els.barsSelect) {
+      var v = els.barsSelect.value;
+      var ok = false, i;
+      for (i = 0; i < els.barsSelect.options.length; i++) { if (els.barsSelect.options[i].value === v) ok = true; }
+      if (!ok) els.barsSelect.value = "500";
+      state.bars = parseInt(els.barsSelect.value, 10) || 500;
+    }
+    if (els.refreshBtn) els.refreshBtn.addEventListener("click", function () { load(); });
+    if (els.codeInput) {
+      els.codeInput.addEventListener("focus", function () { setTimeout(function () { els.codeInput.select(); }, 0); });
+      els.codeInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.keyCode === 13) { e.preventDefault(); load(); }
+        if (e.key === "Escape") hideSuggest();
+      });
+      els.codeInput.addEventListener("blur", function () {
+        var v = (els.codeInput.value || "").trim();
+        if (v && /\s/.test(v)) v = v.replace(/\s+/g, "");
+        if (els.codeInput.value !== v) els.codeInput.value = v;
+        setTimeout(hideSuggest, 140);
+      });
+      setupSuggest();
+    }
+    if (els.barsSelect) els.barsSelect.addEventListener("change", function () { load(); });
+    bindChart();
+    var rt = null;
+    window.addEventListener("resize", function () {
+      if (rt) clearTimeout(rt);
+      rt = setTimeout(function () { drawChart(); }, 120);
+    });
+    /* ---------- v32 W-M 选股模型：事件绑定 ---------- */
+    if ($("wmRunBtn")) $("wmRunBtn").addEventListener("click", function () { runWm(); });
+    if ($("wmPeriods")) {
+      var wmTabs = $("wmPeriods").querySelectorAll(".ptab");
+      for (var wi = 0; wi < wmTabs.length; wi++) {
+        wmTabs[wi].addEventListener("click", function () {
+          var p = this.getAttribute("data-p") || "day";
+          if (p === wmPeriod) return;
+          wmPeriod = p;
+          for (var k = 0; k < wmTabs.length; k++) { wmTabs[k].classList.remove("on"); }
+          this.classList.add("on");
+          if (wmLastQuery) runWm(wmLastQuery);
+        });
+      }
+    }
+    /* 首屏渲染空状态 */
+    renderAll();
+    load();
+    /* 第一层 · 宏观环境：大盘K线独立加载（不依赖个股分析结果） */
+    bindIndexPeriodTabs();
+    loadIndexCharts();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+</script>
+</body>
+</html>

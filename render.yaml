@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: smart-money-wyckoff
+    runtime: python
+    plan: free
+    # Render 免费版会休眠；新加坡节点离国内数据源更近（若报 region 不支持，删掉这一行用默认）
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      # 数据源 https 被掐断时自动降级 http 的历史开关（默认已自带降级，这里只是显式保留）
+      - key: PYTHONUTF8
+        value: "1"

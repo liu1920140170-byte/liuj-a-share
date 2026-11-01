@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>基本面尽调报告 · A股（九鼎框架）</title>
+<style>
+  :root{
+    --bg:#0f1319; --panel:#161c24; --panel2:#1b222c; --line:#242d39;
+    --text:#e6edf3; --dim:#8b98a8; --dim2:#64717f;
+    --up:#ef4444; --down:#22c55e; --warn:#f59e0b; --info:#38bdf8; --purple:#a78bfa;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:13px;line-height:1.65;}
+  a{color:var(--info);}
+  .mono{font-family:Consolas,Menlo,monospace;}
+  #topbar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;
+    gap:10px 14px;padding:10px 16px;background:linear-gradient(180deg,#151b24,#111720);
+    border-bottom:1px solid var(--line);}
+  .brand{display:flex;align-items:baseline;gap:8px;font-size:16px;font-weight:700;}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--purple);display:inline-block;box-shadow:0 0 8px var(--purple);}
+  .brand small{color:var(--dim2);font-weight:400;font-size:11px;}
+  input[type=text]{background:#0c1117;color:var(--text);border:1px solid var(--line);border-radius:5px;
+    padding:6px 9px;font-size:13px;font-family:inherit;outline:none;width:170px;letter-spacing:1px;}
+  input[type=text]:focus{border-color:#3b82f6;}
+  button{background:#232c38;color:var(--text);border:1px solid var(--line);border-radius:5px;
+    padding:6px 14px;font-size:13px;font-family:inherit;cursor:pointer;}
+  button:hover{background:#2b3644;}
+  button.primary{background:#7c3aed;border-color:#7c3aed;color:#fff;}
+  button.primary:hover{background:#8b5cf6;}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  .sugWrap{position:relative;}
+  #sug{position:absolute;top:34px;left:0;min-width:240px;background:#161c24;border:1px solid var(--line);
+    border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);display:none;z-index:50;max-height:280px;overflow:auto;}
+  #sug div{padding:6px 10px;cursor:pointer;display:flex;justify-content:space-between;gap:12px;}
+  #sug div:hover{background:#232c38;}
+  #sug .c{color:var(--dim2);}
+  #status{padding:8px 16px;color:var(--dim);font-size:12px;border-bottom:1px solid var(--line);min-height:20px;}
+  #status.err{color:var(--up);}
+  #report{max-width:1100px;margin:0 auto;padding:14px 16px 60px;}
+  .hidden{display:none !important;}
+  #headCard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px;}
+  #headCard h1{margin:0 0 4px;font-size:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  #headCard .sub{color:var(--dim);font-size:12px;}
+  .badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;border:1px solid var(--line);color:var(--dim);}
+  .badge.mkt{color:var(--info);border-color:var(--info);}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden;}
+  section summary{cursor:pointer;list-style:none;padding:11px 16px;display:flex;align-items:center;gap:10px;
+    background:linear-gradient(180deg,#1a212b,#171d26);user-select:none;}
+  section summary::-webkit-details-marker{display:none;}
+  section summary:hover{background:#202836;}
+  section summary .no{color:var(--purple);font-weight:700;font-size:12px;letter-spacing:.5px;}
+  section summary h2{margin:0;font-size:15px;font-weight:700;flex:1;}
+  section summary .arr{color:var(--dim2);transition:transform .15s;}
+  section[open] summary .arr{transform:rotate(90deg);}
+  .bd{padding:12px 16px 16px;}
+  .subsec{border-left:2px solid var(--line);padding:8px 12px;margin:8px 0;background:var(--panel2);border-radius:0 8px 8px 0;}
+  .subsec .k{color:var(--info);font-weight:700;font-size:12px;margin-bottom:3px;}
+  .guide{color:var(--dim2);font-size:12px;background:rgba(167,139,250,.06);border-left:2px solid var(--purple);
+    padding:5px 9px;border-radius:4px;margin-bottom:6px;}
+  .inf{color:var(--text);padding:5px 9px;margin:5px 0;background:rgba(56,189,248,.07);border-left:2px solid var(--info);border-radius:4px;}
+  .note{color:var(--warn);font-size:12px;padding:4px 9px;margin:5px 0;background:rgba(245,158,11,.07);border-left:2px solid var(--warn);border-radius:4px;}
+  table{border-collapse:collapse;width:100%;margin:6px 0;font-size:12px;}
+  th,td{border:1px solid var(--line);padding:5px 8px;text-align:right;white-space:nowrap;}
+  th{background:var(--panel2);color:var(--dim);font-weight:600;}
+  td:first-child,th:first-child{text-align:left;}
+  tr:hover td{background:#1d2530;}
+  td.self-row{color:var(--warn);font-weight:700;}
+  .pos{color:var(--up);} .neg{color:var(--down);}
+  .sumGrid{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;}
+  #scoreBox{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 22px;text-align:center;min-width:150px;}
+  #scoreBox .num{font-size:34px;font-weight:800;line-height:1.1;}
+  #scoreBox .grade{font-size:13px;margin-top:2px;}
+  .kpis{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+  .kpi{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;min-width:110px;}
+  .kpi .k{color:var(--dim2);font-size:11px;}
+  .kpi .v{font-size:14px;font-weight:700;}
+  ul.pts{margin:6px 0;padding-left:20px;}
+  ul.pts li{margin:3px 0;}
+  .risk{display:flex;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;align-items:baseline;}
+  .risk .lv{flex:none;font-size:11px;padding:1px 8px;border-radius:9px;font-weight:700;}
+  .risk.high{border-left:3px solid var(--up);} .risk.high .lv{background:rgba(239,68,68,.15);color:var(--up);}
+  .risk.mid{border-left:3px solid var(--warn);} .risk.mid .lv{background:rgba(245,158,11,.15);color:var(--warn);}
+  .risk.low{border-left:3px solid var(--dim);} .risk.low .lv{background:rgba(139,152,168,.15);color:var(--dim);}
+  .risk .d{color:var(--dim);font-size:12px;}
+  .valCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;}
+  /* conclusion banner */
+  .concl{padding:9px 12px;border-left:3px solid #34d399;background:rgba(52,211,153,.08);border-radius:0 8px 8px 0;font-weight:600;color:#a7f3d0;line-height:1.55;}
+  .dim{color:var(--dim);font-size:11px;}
+  /* industry chain */
+  .chain{margin:8px 0;}
+  .chain-node{padding:10px 12px;border-radius:10px;margin:4px 0;background:rgba(255,255,255,.04);border:1px solid var(--line);}
+  .chain-node.up{border-left:3px solid #60a5fa;}
+  .chain-node.mid{border-left:3px solid #a78bfa;}
+  .chain-node.down{border-left:3px solid #34d399;}
+  .chain-node .tag{font-size:12px;padding:1px 8px;border-radius:8px;background:rgba(255,255,255,.08);color:var(--dim);}
+  .chain-node p{margin:6px 0 0;line-height:1.5;}
+  .chain-arrow{text-align:center;color:var(--dim);font-size:12px;margin:-2px 0;}
+  .chain-pos{margin-top:8px;padding:8px 12px;background:rgba(167,139,250,.08);border-radius:8px;color:#c4b5fd;}
+  /* five forces badge */
+  .forceBadge{margin:6px 0;}
+  .forceBadge .lvl{display:inline-block;padding:3px 12px;border-radius:12px;color:#fff;font-size:13px;font-weight:700;}
+  .valCard{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+  .valCard .t{color:var(--dim);font-size:12px;display:flex;justify-content:space-between;}
+  .valCard .cur{font-size:22px;font-weight:800;margin:2px 0 8px;}
+  .pctBar{position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,#14532d,#365314,#713f12,#7f1d1d);overflow:visible;}
+  .pctBar i{position:absolute;top:-4px;width:3px;height:16px;border-radius:2px;background:#fff;box-shadow:0 0 6px rgba(255,255,255,.8);}
+  .pctNote{color:var(--dim2);font-size:11px;margin-top:8px;}
+  #gradeChip{display:inline-block;padding:2px 12px;border-radius:10px;font-weight:800;}
+  .cmt{color:var(--dim2);font-size:11px;margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;}
+  #errBox{background:rgba(245,158,11,.08);border:1px dashed var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--warn);}
+  #errBox ul{margin:4px 0 0;padding-left:18px;}
+  .empty{color:var(--dim2);font-style:italic;padding:6px 0;}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;font-size:12px;margin:4px 0;}
+  .kv .kk{color:var(--dim2);}
+  @media print{
+    body{background:#fff;color:#111;}
+    #topbar,#status{display:none;}
+    section,#headCard{break-inside:avoid;border-color:#bbb;background:#fff;color:#111;}
+    section summary{background:#f3f4f6;color:#111;}
+    th,td{border-color:#bbb;} th{background:#f3f4f6;color:#333;}
+    .valCard,#scoreBox,.kpi,.subsec,.guide,.inf,.note{background:#fafafa;color:#111;border-color:#ddd;}
+    .pos{color:#c0392b;} .neg{color:#1e8449;}
+  }
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="brand"><span class="dot"></span>基本面尽调报告<small>九鼎尽调框架 8 章核心 · 数据源：东方财富</small></div>
+  <div class="sugWrap">
+    <input type="text" id="code" placeholder="代码 / 名称，如 600519" autocomplete="off">
+    <div id="sug"></div>
+  </div>
+  <button class="primary" id="btnGo">生成报告</button>
+  <button id="btnPrint" disabled>打印 / 导出 PDF</button>
+  <a href="/" style="color:var(--dim2);font-size:12px;">← 返回聪明钱复盘台</a>
+</div>
+<div id="status">输入股票代码或名称，点击「生成报告」。报告按九鼎尽调框架 8 章核心逐节展开，标注「需查阅年报」的小节需人工补充。</div>
+
+<div id="report" class="hidden">
+  <div id="errBox" class="hidden"></div>
+  <div id="headCard">
+    <h1><span id="hName">--</span><span id="hCode" class="mono" style="font-size:14px;color:var(--dim);"></span>
+      <span id="hMkt" class="badge mkt"></span>
+      <span id="hPrice" class="mono" style="font-size:16px;"></span>
+      <span id="hChg" class="mono"></span></h1>
+    <div class="sub" id="hSub"></div>
+    <div class="kpis" id="hKpis"></div>
+  </div>
+
+  <details open><summary><span class="no">摘要</span><h2>摘要</h2><span class="arr">▶</span></summary>
+    <div class="bd">
+      <div class="sumGrid">
+        <div id="scoreBox"><div class="k" style="color:var(--dim2);font-size:11px;">综合评分</div>
+          <div class="num" id="sScore">--</div><div class="grade" id="sGrade"></div></div>
+        <div>
+          <div class="concl" id="sConcl" style="margin:0 0 8px;"></div>
+          <h3 class="k">业务简介</h3><p id="sBrief"></p>
+          <h3 class="k">投资价值要点</h3><ul class="pts" id="sPts"></ul>
+          <h3 class="k">主要风险（规则扫描）</h3><ul class="pts" id="sRisks"></ul>
+        </div>
+      </div>
+      <h3 class="k">财务简况（三年 + 最新一期）</h3>
+      <div id="sFin"></div>
+    </div>
+  </details>
+
+  <div id="chBody"></div>
+
+  <p class="cmt" id="footNote"></p>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const fmtYi = (v, d=2) => (v==null||isNaN(v)) ? "—" : (v/1e8).toFixed(d);
+const fmt = (v, d=2) => (v==null||isNaN(v)) ? "—" : Number(v).toFixed(d);
+const fmtPct = v => (v==null||isNaN(v)) ? "—" : (v>0?"+":"") + v.toFixed(2) + "%";
+const cls = v => (v==null||isNaN(v)) ? "" : (v>0 ? "pos" : (v<0 ? "neg" : ""));
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* 搜索联想 */
+const sug = $("sug"), codeInput = $("code");
+let sugTimer = null;
+codeInput.addEventListener("input", () => {
+  clearTimeout(sugTimer);
+  const q = codeInput.value.trim();
+  if (!q) { sug.style.display="none"; return; }
+  sugTimer = setTimeout(async () => {
+    try {
+      const r = await fetch("/api/search?q=" + encodeURIComponent(q));
+      const j = await r.json();
+      const items = (j.items||[]).slice(0,8);
+      if (!items.length) { sug.style.display="none"; return; }
+      sug.innerHTML = items.map(it =>
+        `<div data-code="${esc(it.code)}"><span>${esc(it.name)}</span><span class="c mono">${esc(it.code)}</span></div>`).join("");
+      sug.style.display="block";
+      sug.querySelectorAll("div").forEach(d => d.addEventListener("mousedown", e => {
+        e.preventDefault(); codeInput.value = d.dataset.code; sug.style.display="none"; go();
+      }));
+    } catch(e){ sug.style.display="none"; }
+  }, 250);
+});
+document.addEventListener("click", e => { if (!e.target.closest(".sugWrap")) sug.style.display="none"; });
+codeInput.addEventListener("keydown", e => { if (e.key==="Enter") { sug.style.display="none"; go(); } });
+$("btnGo").addEventListener("click", () => { sug.style.display="none"; go(); });
+$("btnPrint").addEventListener("click", () => window.print());
+
+/* 主流程 */
+const _cache = {};
+async function go() {
+  const raw = codeInput.value.trim();
+  if (!raw) return;
+  $("btnGo").disabled = true;
+  $("status").className=""; $("status").textContent = "正在抓取尽调数据（约 10-40 秒，含全部核心章节）…";
+  try {
+    const key = raw.toLowerCase();
+    let j = _cache[key];
+    if (!j) {
+      const r = await fetch("/api/fundamental?code=" + encodeURIComponent(raw));
+      j = await r.json();
+      if (j.ok) _cache[key] = j;
+    }
+    if (!j.ok) throw new Error(j.error||"获取失败");
+    render(j);
+    $("status").className="";
+    $("status").textContent = `报告生成完毕：${j.meta.name}（${j.meta.code}）· ${j.meta.generated_at}` +
+      (j.errors.length ? ` · ${j.errors.length} 项数据源缺失` : "");
+  } catch(e) {
+    $("status").className="err"; $("status").textContent = "生成失败：" + e.message;
+  } finally { $("btnGo").disabled = false; }
+}
+
+const CH_TITLES = {
+  ch1:"1 主营业务", ch2:"2 行业分析", ch3:"3 竞争分析", ch4:"4 团队治理",
+  ch5:"5 财务情况", ch6:"6 历史沿革", ch7:"7 成长路径", ch8:"8 盈利预测与估值"
+};
+
+function render(j) {
+  $("report").classList.remove("hidden");
+  $("btnPrint").disabled = false;
+  const q = j.quote, m = j.meta;
+  if (j.errors.length) {
+    $("errBox").classList.remove("hidden");
+    $("errBox").innerHTML = "<b>以下数据源获取失败，对应章节以「需查阅年报」或「—」降级：</b><ul>" +
+      j.errors.map(e=>`<li>${esc(e)}</li>`).join("") + "</ul>";
+  } else $("errBox").classList.add("hidden");
+
+  /* 头卡 */
+  $("hName").textContent = m.name; $("hCode").textContent = m.code;
+  $("hMkt").textContent = m.symbol.startsWith("sh")?"沪市":m.symbol.startsWith("sz")?"深市":"北交所";
+  $("hPrice").textContent = q ? fmt(q.price)+" 元" : "";
+  if (q) { $("hChg").textContent = fmtPct(q.change_pct); $("hChg").className="mono "+cls(q.change_pct); }
+  $("hSub").textContent = [
+    q&&q.total_cap?`总市值 ${fmtYi(q.total_cap)} 亿`:"",
+    q&&q.pe?`PE ${fmt(q.pe)}`:"", q&&q.pb?`PB ${fmt(q.pb)}`:"",
+    `生成 ${m.generated_at}`
+  ].filter(Boolean).join(" · ");
+  const score = j.summary.score ?? "—";
+  const grade = j.summary.grade ?? "—";
+  $("hKpis").innerHTML = [
+    kpi("综合评分", score, grade, gradeColor(grade)),
+    kpi("营收CAGR(2年)", fmtPct(j.ch7["7.1"].data?.rev_cagr), "", cls(j.ch7["7.1"].data?.rev_cagr)),
+    kpi("净利CAGR(2年)", fmtPct(j.ch7["7.1"].data?.np_cagr), "", cls(j.ch7["7.1"].data?.np_cagr)),
+    kpi("ROE(最新)", fmtPct(j.summary.fin_brief[0]?.roe)),
+    kpi("毛利率", fmtPct(j.summary.fin_brief[0]?.gross_margin)),
+    kpi("负债率", fmtPct(j.summary.fin_brief[0]?.debt_ratio)),
+  ].join("");
+
+  /* 摘要 */
+  $("sScore").textContent = score; $("sScore").style.color = gradeColor(grade);
+  $("sGrade").innerHTML = `<span id="gradeChip" style="background:${gradeColor(grade)}22;color:${gradeColor(grade)};">${grade} 档</span>`;
+  $("sBrief").textContent = j.summary.business_brief;
+  $("sConcl").textContent = j.summary.conclusion || "";
+  $("sPts").innerHTML = j.summary.value_points.length
+    ? j.summary.value_points.map(p=>`<li>${esc(p)}</li>`).join("")
+    : '<li class="empty">暂无突出亮点</li>';
+  $("sRisks").innerHTML = (j.summary.risk_points||[]).length
+    ? j.summary.risk_points.map(r=>`<li><b>${esc(r.title)}</b>：${esc(r.detail)}</li>`).join("")
+    : '<li class="empty">规则扫描未发现显著风险项</li>';
+  $("sFin").innerHTML = finBriefTable(j.summary.fin_brief);
+
+  /* 8 章 */
+  let html = "";
+  for (const ch of ["ch1","ch2","ch3","ch4","ch5","ch6","ch7","ch8"]) {
+    html += renderChapter(ch, j[ch]);
+  }
+  html += `<details open><summary><span class="no">附件</span><h2>13 附件 · 数据来源声明</h2><span class="arr">▶</span></summary>
+    <div class="bd"><ul class="pts">${(j.annex.sources||[]).map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
+    <p class="note">${esc(j.annex.note)}</p></div></details>`;
+  $("chBody").innerHTML = html;
+  $("footNote").textContent = "本报告按九鼎投资尽调框架（8 章核心）自动生成，数据取自东方财富公开 F10 接口。"
+    + "标注「需查阅年报」的小节公开接口不含明细，需结合年报/公告人工补充。评分与结论为规则化研判，仅供研究参考，不构成投资建议。";
+  window.scrollTo(0,0);
+}
+
+function renderChapter(ch, data) {
+  if (!data) return "";
+  const title = CH_TITLES[ch] || ch;
+  if (ch === "ch11") {
+    const items = data.items || [];
+    return `<details open><summary><span class="no">${ch.slice(2)}</span><h2>${title}</h2><span class="arr">▶</span></summary>
+      <div class="bd">
+        <div class="guide">${esc(data.guide)}</div>
+        <div class="inf">${esc(data.inference)}</div>
+        ${items.length ? items.map(r=>`<div class="risk ${r.level}"><span class="lv">${({high:"高",mid:"中",low:"低"})[r.level]}危</span><div><b>${esc(r.title)}</b><div class="d">${esc(r.detail)}</div></div></div>`).join("") : '<p class="empty">规则扫描未发现显著风险项</p>'}
+        <div class="note">风险发生概率与应对措施需结合公司公告、行业环境与实地调研判断。</div>
+      </div></details>`;
+  }
+  const concl = data.conclusion ? `<div class="concl">${esc(data.conclusion)}</div>` : "";
+  let body = "";
+  for (const [k, sec] of Object.entries(data)) {
+    if (k === "conclusion") continue;
+    body += `<div class="subsec"><div class="k">${k}</div>${renderSec(sec)}</div>`;
+  }
+  return `<details open><summary><span class="no">${ch.slice(2)}</span><h2>${title}</h2><span class="arr">▶</span></summary>
+    <div class="bd">${concl}${body}</div></details>`;
+}
+
+function renderSec(sec) {
+  if (!sec) return '<span class="empty">—</span>';
+  let h = "";
+  if (sec.guide) h += `<div class="guide">【框架要求】${esc(sec.guide)}</div>`;
+  if (sec.data) h += renderData(sec.data);
+  if (sec.inference) h += `<div class="inf">${esc(sec.inference)}</div>`;
+  if (sec.note) h += `<div class="note">${esc(sec.note)}</div>`;
+  return h || '<span class="empty">公开数据接口不含此项，需查阅年报补充。</span>';
+}
+
+/* 按数据形状渲染 */
+function renderData(d) {
+  if (!d) return "";
+  // mainop
+  if (d.by_product || d.by_industry || d.by_region) {
+    const grp = (t, list) => list && list.length
+      ? `<h3 class="k">${t}（${esc(d.date||"")}）</h3><table><tr><th>项目</th><th>收入（亿）</th><th>占比</th><th>毛利率</th></tr>` +
+        list.slice(0,10).map(x=>`<tr><td>${esc(x.item)}</td><td>${fmtYi(x.income)}</td><td>${fmt(x.ratio)}%</td><td>${fmt(x.gross_margin)}%</td></tr>`).join("") + "</table>" : "";
+    return grp("按产品", d.by_product) + grp("按行业", d.by_industry) + grp("按地区", d.by_region);
+  }
+  // peers
+  if (Array.isArray(d.peers)) {
+    return `<h3 class="k">同板块同行（按市值）</h3>` + (d.peers.length ?
+      `<table><tr><th>代码</th><th>名称</th><th>现价</th><th>涨跌幅</th><th>PE</th><th>PB</th><th>总市值(亿)</th></tr>` +
+      d.peers.map(p=>`<tr class="${p.is_self?"self-row":""}"><td class="mono">${esc(p.code)}</td><td>${esc(p.name)}${p.is_self?" ←本股":""}</td>
+        <td>${fmt(p.price)}</td><td class="${cls(p.change_pct)}">${fmtPct(p.change_pct)}</td>
+        <td>${fmt(p.pe,1)}</td><td>${fmt(p.pb,2)}</td><td>${fmtYi(p.cap)}</td></tr>`).join("") + "</table>"
+      : '<p class="empty">同行对比数据缺失（东财 clist 接口风控，待恢复）</p>');
+  }
+  // top10 holders
+  if (Array.isArray(d.top10)) {
+    return d.top10.length
+      ? `<table><tr><th>排名</th><th>股东名称</th><th>持股比例</th></tr>` +
+        d.top10.map(h=>`<tr><td>${h.rank??"—"}</td><td>${esc(h.name)}</td><td>${fmt(h.ratio)}%</td></tr>`).join("") + "</table>"
+      : "";
+  }
+  // holder_num (from ch4 4.7)
+  if (d.holder_num) {
+    const tr = (d.holder_num.trend||[]);
+    return tr.length ? `<table><tr><th>截止日期</th><th>股东户数(万户)</th><th>环比</th></tr>` +
+      tr.map(h=>`<tr><td>${esc(h.date)}</td><td>${h.num?fmt(h.num/1e4):"—"}</td><td class="${cls(h.change_ratio)}">${fmtPct(h.change_ratio)}</td></tr>`).join("") + "</table>" : "";
+  }
+  // balance
+  if (Array.isArray(d.balance)) {
+    return `<table><tr><th>年度</th><th>总资产(亿)</th><th>归母净资产(亿)</th><th>负债合计(亿)</th><th>货币(亿)</th><th>存货(亿)</th><th>应收+票据(亿)</th><th>商誉(亿)</th></tr>` +
+      d.balance.map(r=>`<tr><td>${esc(r.date)}</td><td>${fmtYi(r.total_assets)}</td><td>${fmtYi(r.parent_equity)}</td>
+        <td>${fmtYi(r.total_liab)}</td><td>${fmtYi(r.monetary)}</td><td>${fmtYi(r.inventory)}</td>
+        <td>${fmtYi((r.accounts_rece||0)+(r.note_rece||0))}</td><td>${fmtYi(r.goodwill)}</td></tr>`).join("") + "</table>";
+  }
+  // cashflow
+  if (Array.isArray(d.cashflow)) {
+    return `<table><tr><th>年度</th><th>经营净额(亿)</th><th>投资净额(亿)</th><th>筹资净额(亿)</th></tr>` +
+      d.cashflow.map(r=>`<tr><td>${esc(r.date)}</td><td class="${cls(r.netcash_operate)}">${fmtYi(r.netcash_operate)}</td>
+        <td class="${cls(r.netcash_invest)}">${fmtYi(r.netcash_invest)}</td><td class="${cls(r.netcash_finance)}">${fmtYi(r.netcash_finance)}</td></tr>`).join("") + "</table>";
+  }
+  // predict
+  if (d.predict) {
+    const p = d.predict; const ys = p.years||[];
+    let s = "";
+    if (p.org_num) {
+      s += `<p class="note">${p.org_num} 家机构：买入 ${p.buy_num} · 增持 ${p.add_num} · 中性 ${p.neutral_num||0} · 减持 ${p.reduce_num||0}（${esc(p.industry_board||"")}）</p>`;
+      if (ys.length) s += `<table><tr><th>年度</th><th>类型</th><th>一致预期 EPS</th></tr>` +
+        ys.map(y=>`<tr><td>${y.year}</td><td>${y.mark==="A"?"实际":"预测"}</td><td>${fmt(y.eps)}</td></tr>`).join("") + "</table>";
+    } else s += '<p class="empty">无机构盈利预测</p>';
+    return s;
+  }
+  // valuation cards
+  if (d.valuation) {
+    const v = d.valuation;
+    const card = (t, s) => {
+      if (!s || s.current == null) return `<div class="valCard"><div class="t"><span>${t}</span></div><div class="cur">—</div><p class="empty">无数据</p></div>`;
+      const p = s.percentile;
+      return `<div class="valCard"><div class="t"><span>${t}</span><span>中位 ${s.median}</span></div>
+        <div class="cur">${s.current}</div>
+        ${p!=null ? `<div class="pctBar"><i style="left:calc(${Math.min(100,Math.max(0,p))}% - 1px);"></i></div>
+          <div class="pctNote">历史分位 <b style="color:${p>=85?"var(--up)":p<=20?"var(--down)":"var(--warn)"};">${p}%</b>（${s.min}~${s.max}，${esc(v.span||"")}）</div>`
+          : '<div class="pctNote">历史长度不足，无法计算分位</div>'}</div>`;
+    };
+    return `<div class="valCards">${card("PE-TTM",v.pe)}${card("PB-MRQ",v.pb)}${card("PS-TTM",v.ps)}</div>
+      <p class="note" style="margin-top:10px;">PEG ${v.peg!=null?fmt(v.peg):"—"} · 总市值 ${v.total_cap?fmtYi(v.total_cap)+" 亿":"—"}</p>
+      ${d.target_note?`<h3 class="k">机构目标价</h3><p class="note">${esc(d.target_note)}</p>`:""}`;
+  }
+  // bright list
+  if (Array.isArray(d.bright)) {
+    return d.bright.length ? '<ul class="pts">' + d.bright.map(b=>`<li><b>${esc(b.title)}</b>：${esc(b.detail)}</li></ul>`).join("") + "</ul>" : "";
+  }
+  // peer financial comparison (ch3.5)
+  if (d.peer_fin) {
+    const rows = d.peer_fin;
+    return rows.length ? `<h3 class="k">同行财务对比（最新年报，按归母净利降序）</h3>
+      <table><tr><th>公司</th><th>营收(亿)</th><th>同比</th><th>归母净利(亿)</th><th>同比</th><th>净利率</th><th>ROE</th></tr>` +
+      rows.map(p=>`<tr class="${p.is_self?"self-row":""}"><td>${esc(p.name)}${p.is_self?" ←本股":""}</td>
+        <td>${fmtYi(p.revenue)}</td><td class="${cls(p.revenue_yoy)}">${fmtPct(p.revenue_yoy)}</td>
+        <td>${fmtYi(p.net_profit)}</td><td class="${cls(p.net_profit_yoy)}">${fmtPct(p.net_profit_yoy)}</td>
+        <td>${fmtPct(p.net_margin)}</td><td>${fmtPct(p.roe)}</td></tr>`).join("") + "</table>"
+      : '<p class="empty">同行财务数据缺失</p>';
+  }
+  // scenario forecast (ch8.1)
+  if (d.scenarios) {
+    const sr = d.scenarios || [];
+    if (!sr.length) return "";
+    return `<h3 class="k">盈利预测情景（${esc(d.fc_source||"规则化测算")}）</h3>
+      <table><tr><th>情景</th><th>归母净利(亿)</th><th>隐含PE(倍)</th><th>假设</th></tr>` +
+      sr.map(s=>`<tr><td>${esc(s.name)}</td><td>${fmt(s.np)}</td><td>${s.pe!=null?fmt(s.pe):"—"}</td>
+        <td class="dim">${esc(s.note)}</td></tr>`).join("") + "</table>";
+  }
+  // valuation sensitivity matrix (ch8.2)
+  if (d.matrix) {
+    const mx = d.matrix || [];
+    if (!mx.length) return "";
+    return `<h3 class="k">估值敏感性：目标市值(万亿) / 目标价(元)</h3>
+      <table><tr><th>PE 锚（历史分位）</th>${mx[0].cells.map(c=>`<th>${esc(c.name)}净利</th>`).join("")}</tr>` +
+      mx.map(r=>`<tr><td>${esc(r.pe_label)}</td>` +
+        r.cells.map(c=>`<td>${c.cap_ty} 万亿<br><span class="dim">${c.price} 元</span></td>`).join("") + "</tr>").join("") + "</table>";
+  }
+  // industry chain (ch2.6)
+  if (d.industry_chain) {
+    const ic = d.industry_chain;
+    return `<div class="chain">
+      <div class="chain-node up"><span class="tag">上游·供应商</span><p>${esc(ic.upstream||"")}</p></div>
+      <div class="chain-arrow">▲</div>
+      <div class="chain-node mid"><span class="tag">中游·本公司</span><p>${esc(ic.midstream||"")}</p></div>
+      <div class="chain-arrow">▲</div>
+      <div class="chain-node down"><span class="tag">下游·客户</span><p>${esc(ic.downstream||"")}</p></div>
+      <div class="chain-pos"><b>产业链话语权：</b>${esc(ic.position||"")}</div>
+    </div>`;
+  }
+  // five forces level badge (ch3)
+  if (d.level) {
+    const lvl = esc(d.level);
+    const color = lvl.includes("较弱")||lvl.includes("弱") ? "var(--up)" :
+                  lvl.includes("较强")||lvl.includes("激烈")||lvl.includes("高") ? "var(--down)" :
+                  lvl.includes("待评估") ? "#888" : "var(--warn)";
+    return `<div class="forceBadge"><span class="lvl" style="background:${color}">${lvl}</span></div>`;
+  }
+  // execs / simple dict -> key-value
+  if (typeof d === "object" && !Array.isArray(d)) {
+    const kv = [];
+    for (const [k,v] of Object.entries(d)) {
+      if (v==null || v==="" || (typeof v==="number" && isNaN(v))) continue;
+      kv.push(`<div class="kv"><span class="kk">${esc(k)}</span><span>${esc(v)}</span></div>`);
+    }
+    return kv.join("");
+  }
+  return "";
+}
+
+function finBriefTable(rows) {
+  if (!rows || !rows.length) return '<p class="empty">暂无财务数据</p>';
+  const hd = rows.map(r=>`<th>${esc(r.period||r.date)}</th>`).join("");
+  const line = (name, fn, c) => {
+    const tds = rows.map(r=>{const v=fn(r);return `<td class="${c?c(v):""}">${v==null?"—":v}</td>`;}).join("");
+    return `<tr><td>${name}</td>${tds}</tr>`;
+  };
+  return `<table><tr><th>科目</th>${hd}</tr>` +
+    line("营业收入(亿)", r=>r.revenue==null?null:fmtYi(r.revenue)) +
+    line("营收同比", r=>r.revenue_yoy, v=>v==null?"":cls(v)) +
+    line("净利润(亿)", r=>r.net_profit==null?null:fmtYi(r.net_profit)) +
+    line("净利同比", r=>r.net_profit_yoy, v=>v==null?"":cls(v)) +
+    line("毛利率", r=>r.gross_margin==null?null:fmt(r.gross_margin)+"%") +
+    line("净利率", r=>r.net_margin==null?null:fmt(r.net_margin)+"%") +
+    line("ROE(加权)", r=>r.roe==null?null:fmt(r.roe)+"%") +
+    `</table>`;
+}
+
+function kpi(k, v, sub, c) {
+  return `<div class="kpi"><div class="k">${k}</div><div class="v ${c||""}" style="${c?`color:${c};`:""}">${v}${sub?` <span style="font-size:11px;color:var(--dim2);">${sub}</span>`:""}</div></div>`;
+}
+function gradeColor(g) {
+  return {A:"#ef4444",B:"#f59e0b",C:"#eab308",D:"#38bdf8",E:"#22c55e"}[g]||"#8b98a8";
+}
+</script>
+</body>
+</html>
